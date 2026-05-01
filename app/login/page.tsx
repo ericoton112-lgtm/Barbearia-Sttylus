@@ -60,15 +60,15 @@ export default function LoginPage() {
             data: {
               full_name: fullName,
               phone: phone,
+              role: isBarber ? 'barber' : 'client', // Trigger lê isso e cria perfil correto
             }
           }
         });
 
         if (signUpError) throw signUpError;
 
-        // Se tiver o código de convite, atualizar o perfil para barbeiro
-        if (isBarber && signUpData.user) {
-          await supabase.from('profiles').update({ role: 'barber' }).eq('id', signUpData.user.id);
+        // Redirecionar conforme o cargo
+        if (isBarber) {
           router.push('/professional-dashboard');
         } else {
           router.push('/client-home');
