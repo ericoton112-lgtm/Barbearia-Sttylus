@@ -21,6 +21,7 @@ export default function AgendarPage() {
   const [selectedService, setSelectedService] = useState<any>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<string>('');
+  const [bookedTimes, setBookedTimes] = useState<string[]>([]);
 
   // Generate next 7 days for the date picker
   const dates = Array.from({ length: 7 }, (_, i) => {
@@ -39,24 +40,73 @@ export default function AgendarPage() {
         if (profileData) setProfile(profileData);
       }
 
+      // Buscar serviços primeiro para pré-selecionar se houver na URL
+      const { data: sData } = await supabase.from('services').select('*').order('name', { ascending: true });
+      let initialService = null;
+      if (sData) {
+        setServices(sData);
+        // Tentar pegar serviceId da URL
+        if (typeof window !== 'undefined') {
+          const params = new URLSearchParams(window.location.search);
+          const sId = params.get('serviceId');
+          if (sId) {
+            initialService = sData.find((s: any) => s.id === sId);
+            if (initialService) {
+              setSelectedService(initialService);
+            }
+          }
+        }
+      }
+
       const { data: bData } = await supabase.from('profiles').select('*').eq('role', 'barber');
       if (bData) {
-        const openBarbers = bData.filter(b => b.is_accepting_appointments);
+        const openBarbers = bData.filter((b: any) => b.is_accepting_appointments);
         setBarbers(openBarbers);
         // Auto select se só tiver 1 barbeiro aberto
         if (openBarbers.length === 1) {
           setSelectedBarber(openBarbers[0]);
-          setStep(2);
+          if (initialService) {
+            setStep(3);
+          } else {
+            setStep(2);
+          }
         }
       }
-
-      const { data: sData } = await supabase.from('services').select('*').order('name', { ascending: true });
-      if (sData) setServices(sData);
 
       setLoading(false);
     };
     fetchData();
   }, []);
+
+  useEffect(() => {
+    const fetchBookedTimes = async () => {
+      if (!selectedBarber || !selectedDate) return;
+
+      const startOfDay = new Date(selectedDate);
+      startOfDay.setHours(0, 0, 0, 0);
+
+      const endOfDay = new Date(selectedDate);
+      endOfDay.setHours(23, 59, 59, 999);
+
+      const { data } = await supabase
+        .from('appointments')
+        .select('appointment_date')
+        .eq('barber_id', selectedBarber.id)
+        .gte('appointment_date', startOfDay.toISOString())
+        .lte('appointment_date', endOfDay.toISOString())
+        .neq('status', 'cancelado');
+
+      if (data) {
+        const times = data.map(app => {
+          const date = new Date(app.appointment_date);
+          return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+        });
+        setBookedTimes(times);
+      }
+    };
+
+    fetchBookedTimes();
+  }, [selectedBarber, selectedDate]);
 
   const handleConfirm = async () => {
     if (!profile || !selectedBarber || !selectedService || !selectedDate || !selectedTime) return;
@@ -145,7 +195,14 @@ export default function AgendarPage() {
                 barbers.map(barber => (
                   <div 
                     key={barber.id}
-                    onClick={() => { setSelectedBarber(barber); setStep(2); }}
+                    onClick={() => { 
+                      setSelectedBarber(barber); 
+                      if (selectedService) {
+                        setStep(3);
+                      } else {
+                        setStep(2);
+                      }
+                    }}
                     className={`bg-zinc-900 border ${selectedBarber?.id === barber.id ? 'border-primary-container bg-primary-container/10' : 'border-zinc-800 hover:border-zinc-700'} rounded-2xl p-4 flex items-center gap-4 cursor-pointer active:scale-95 transition-all`}
                   >
                     <div className="w-16 h-16 bg-zinc-800 rounded-full overflow-hidden flex items-center justify-center border border-zinc-700">
@@ -201,7 +258,10 @@ export default function AgendarPage() {
                     return (
                       <button 
                         key={i} 
-                        onClick={() => setSelectedDate(d)}
+                        onClick={() => {
+                          setSelectedDate(d);
+                          setSelectedTime(''); // Limpa o horário ao trocar de data
+                        }}
                         className={`shrink-0 w-16 h-20 rounded-2xl flex flex-col items-center justify-center border transition-all active:scale-95 ${isSelected ? 'bg-primary-container border-primary-container text-white shadow-[0_0_15px_rgba(0,87,255,0.4)]' : 'bg-zinc-900 border-zinc-800 text-zinc-400'}`}
                       >
                         <span className="text-xs uppercase font-bold">{d.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '')}</span>
@@ -217,15 +277,19 @@ export default function AgendarPage() {
                 <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
                   <h3 className="font-bold text-white mb-3 flex items-center gap-2"><Clock className="size-4 text-primary-container" /> Escolha o horário</h3>
                   <div className="grid grid-cols-3 gap-3">
-                    {times.map(t => (
-                      <button
-                        key={t}
-                        onClick={() => setSelectedTime(t)}
-                        className={`py-3 rounded-xl border font-bold text-sm transition-all active:scale-95 ${selectedTime === t ? 'bg-primary-container border-primary-container text-white shadow-[0_0_15px_rgba(0,87,255,0.4)]' : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-700'}`}
-                      >
-                        {t}
-                      </button>
-                    ))}
+                    {times.map(t => {
+                      const isBooked = bookedTimes.includes(t);
+                      return (
+                        <button
+                          key={t}
+                          disabled={isBooked}
+                          onClick={() => setSelectedTime(t)}
+                          className={`py-3 rounded-xl border font-bold text-sm transition-all ${isBooked ? 'bg-zinc-900/50 border-zinc-800 text-zinc-600 opacity-50 cursor-not-allowed' : selectedTime === t ? 'bg-primary-container border-primary-container text-white shadow-[0_0_15px_rgba(0,87,255,0.4)] active:scale-95' : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-700 active:scale-95'}`}
+                        >
+                          {t}
+                        </button>
+                      )
+                    })}
                   </div>
                 </motion.div>
               )}

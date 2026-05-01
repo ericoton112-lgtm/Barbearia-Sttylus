@@ -46,7 +46,18 @@ export default function ClientHomePage() {
   }
 
   return (
-    <div className="bg-[#131313] text-[#e5e2e1] min-h-screen pb-28 relative">
+    <div className="bg-[#131313] text-[#e5e2e1] min-h-screen pb-28 relative overflow-hidden">
+      {/* Background Image */}
+      <div className="fixed inset-0 z-0 pointer-events-none">
+        <img 
+          src="https://images.unsplash.com/photo-1585747860715-2ba37e788b70?q=80&w=2074&auto=format&fit=crop" 
+          alt="Barbershop Background" 
+          className="w-full h-full object-cover opacity-[0.15] grayscale"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#131313]/40 via-[#131313]/80 to-[#131313]"></div>
+      </div>
+
+      <div className="relative z-10">
       {/* Header Profile */}
       <header className="px-5 pt-12 pb-6 flex justify-between items-center bg-zinc-950/80 backdrop-blur-md sticky top-0 z-40 border-b border-zinc-900">
         <div>
@@ -82,24 +93,25 @@ export default function ClientHomePage() {
                 <p className="text-zinc-500 text-sm w-full text-center py-4 bg-zinc-900 rounded-xl border border-zinc-800">Nenhum serviço disponível no momento.</p>
              ) : (
                 services.map((srv, idx) => (
-                  <motion.div 
-                    key={srv.id}
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: idx * 0.1 }}
-                    className="shrink-0 w-64 bg-zinc-900 border border-zinc-800 rounded-2xl p-5 snap-center relative overflow-hidden"
-                  >
-                    <div className="flex justify-between items-start mb-16">
-                      <div className="bg-zinc-800 p-2 rounded-lg text-primary-container">
-                        <Scissors className="size-6" />
+                  <Link href={`/client-home/agendar?serviceId=${srv.id}`} key={srv.id} className="shrink-0 snap-center">
+                    <motion.div 
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: idx * 0.1 }}
+                      className="w-64 bg-zinc-900/80 backdrop-blur-md border border-zinc-800 rounded-2xl p-5 relative overflow-hidden hover:border-zinc-700 active:scale-95 transition-all"
+                    >
+                      <div className="flex justify-between items-start mb-16">
+                        <div className="bg-zinc-800 p-2 rounded-lg text-primary-container">
+                          <Scissors className="size-6" />
+                        </div>
+                        <span className="text-white font-black text-lg whitespace-nowrap">R$ {srv.price.toFixed(2).replace('.', ',')}</span>
                       </div>
-                      <span className="text-white font-black text-lg whitespace-nowrap">R$ {srv.price.toFixed(2).replace('.', ',')}</span>
-                    </div>
-                    <div>
-                      <h4 className="text-white font-bold text-lg leading-none">{srv.name}</h4>
-                      <p className="text-zinc-500 text-sm mt-1">{srv.duration_minutes} min</p>
-                    </div>
-                  </motion.div>
+                      <div>
+                        <h4 className="text-white font-bold text-lg leading-none">{srv.name}</h4>
+                        <p className="text-zinc-500 text-sm mt-1">{srv.duration_minutes} min</p>
+                      </div>
+                    </motion.div>
+                  </Link>
                 ))
              )}
           </div>
@@ -137,6 +149,7 @@ export default function ClientHomePage() {
           </div>
         </section>
       </main>
+      </div>
 
       {/* Bottom Nav */}
       <nav className="bg-zinc-900/95 backdrop-blur-md fixed bottom-0 w-full rounded-t-2xl z-30 border-t border-zinc-800 shadow-[0_-4px_20px_rgba(0,0,0,0.4)] flex justify-around items-center h-20 px-4 pb-4">

@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase';
 import { motion, AnimatePresence } from 'motion/react';
 
 export default function ProfessionalServicesPage() {
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   const [services, setServices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -21,9 +22,26 @@ export default function ProfessionalServicesPage() {
     setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
+      setCurrentUser(user);
       // Perfil
-      const { data: profileData } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-      if (profileData) setProfile(profileData);
+      const { data: profileData } = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
+      if (profileData) {
+        setProfile(profileData);
+      } else {
+        const { data: createdProfile } = await supabase
+          .from('profiles')
+          .upsert({
+            id: user.id,
+            full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || '',
+            phone: user.user_metadata?.phone || '',
+            role: user.user_metadata?.role || 'barber',
+            is_accepting_appointments: true
+          }, { onConflict: 'id' })
+          .select('*')
+          .maybeSingle();
+
+        if (createdProfile) setProfile(createdProfile);
+      }
 
       // Buscar serviços - primeiro tenta por barber_id, depois busca todos
       const { data: srvs } = await supabase
@@ -69,7 +87,9 @@ export default function ProfessionalServicesPage() {
     setIsSubmitting(true);
     setSubmitError('');
 
-    if (!profile) {
+    const barberId = profile?.id || currentUser?.id;
+
+    if (!barberId) {
       setSubmitError('Erro: perfil do usuário não carregado. Recarregue a página.');
       setIsSubmitting(false);
       return;
@@ -80,7 +100,7 @@ export default function ProfessionalServicesPage() {
       description: formData.description,
       price: parseFloat(formData.price),
       duration_minutes: parseInt(formData.duration_minutes),
-      barber_id: profile.id
+      barber_id: barberId
     };
 
     console.log('Enviando payload:', payload);

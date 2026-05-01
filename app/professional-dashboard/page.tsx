@@ -54,6 +54,37 @@ export default function ProfessionalDashboardPage() {
 
   useEffect(() => {
     fetchData();
+
+    let channel: any;
+    const setupRealtime = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      
+      channel = supabase
+        .channel('realtime_notifications')
+        .on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
+          (payload) => {
+            // Tocar som de sino
+            const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+            audio.play().catch(console.error);
+            
+            // Adicionar nova notificação ao topo
+            setNotifications(prev => [payload.new, ...prev]);
+            
+            // Recarregar agendamentos para atualizar o dashboard
+            fetchData();
+          }
+        )
+        .subscribe();
+    };
+
+    setupRealtime();
+
+    return () => {
+      if (channel) supabase.removeChannel(channel);
+    };
   }, []);
 
   const handleCheckIn = async (id: string) => {
@@ -109,7 +140,18 @@ export default function ProfessionalDashboardPage() {
   const hasUnread = notifications.some(n => !n.is_read);
 
   return (
-    <div className="bg-[#131313] text-[#e5e2e1] min-h-screen pb-28 relative">
+    <div className="bg-[#131313] text-[#e5e2e1] min-h-screen pb-28 relative overflow-hidden">
+      {/* Background Image */}
+      <div className="fixed inset-0 z-0 pointer-events-none">
+        <img 
+          src="https://images.unsplash.com/photo-1585747860715-2ba37e788b70?q=80&w=2074&auto=format&fit=crop" 
+          alt="Barbershop Background" 
+          className="w-full h-full object-cover opacity-[0.15] grayscale"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#131313]/40 via-[#131313]/80 to-[#131313]"></div>
+      </div>
+
+      <div className="relative z-10">
       {/* TopAppBar */}
       <header className="bg-zinc-950/80 backdrop-blur-md fixed top-0 w-full z-40 border-b border-zinc-900 px-5 py-4 flex justify-between items-center">
         <div className="flex items-center gap-3">
@@ -277,6 +319,7 @@ export default function ProfessionalDashboardPage() {
           </div>
         </section>
       </main>
+      </div>
 
       {/* Bottom Nav Bar */}
       <nav className="bg-zinc-900/95 backdrop-blur-md fixed bottom-0 w-full rounded-t-2xl z-30 border-t border-zinc-800 shadow-[0_-4px_20px_rgba(0,0,0,0.4)] flex justify-around items-center h-20 px-4 pb-4">
