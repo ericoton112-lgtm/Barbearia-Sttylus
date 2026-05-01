@@ -35,10 +35,13 @@ export default function AgendarPage() {
   useEffect(() => {
     const fetchData = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data: profileData } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-        if (profileData) setProfile(profileData);
+      if (!user) {
+        router.replace('/login');
+        return;
       }
+
+      const { data: profileData } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+      if (profileData) setProfile(profileData);
 
       // Buscar serviços primeiro para pré-selecionar se houver na URL
       const { data: sData } = await supabase.from('services').select('*').order('name', { ascending: true });
@@ -240,7 +243,7 @@ export default function AgendarPage() {
                         <p className="text-zinc-400 text-xs">{srv.duration_minutes} minutos</p>
                       </div>
                     </div>
-                    <span className="text-white font-black whitespace-nowrap">R$ {srv.price.toFixed(2).replace('.', ',')}</span>
+                    <span className="text-white font-black whitespace-nowrap">R$ {(Number(srv.price) || 0).toFixed(2).replace('.', ',')}</span>
                   </div>
                 ))
               )}

@@ -169,7 +169,7 @@ export default function ProfessionalServicesPage() {
                        <p className="text-zinc-500 text-xs mt-1 leading-relaxed">{service.description}</p>
                      </div>
                      <span className="text-primary-container font-black text-lg whitespace-nowrap ml-4">
-                       R$ {service.price.toFixed(2).replace('.', ',')}
+                       R$ {(Number(service.price) || 0).toFixed(2).replace('.', ',')}
                      </span>
                    </div>
                    

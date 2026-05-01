@@ -22,13 +22,15 @@ export default function ClientProfilePage() {
   const fetchData = async () => {
     setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      const { data: profileData } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-      if (profileData) {
-        setProfile(profileData);
-        setFullName(profileData.full_name || '');
-        setPhone(profileData.phone || '');
-      }
+    if (!user) {
+      router.replace('/login');
+      return;
+    }
+    const { data: profileData } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+    if (profileData) {
+      setProfile(profileData);
+      setFullName(profileData.full_name || '');
+      setPhone(profileData.phone || '');
     }
     setLoading(false);
   };

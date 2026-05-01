@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Search, Scissors, Star, MapPin, ChevronRight, User as UserIcon, Calendar, Grid } from 'lucide-react';
 import { motion } from 'motion/react';
 import { supabase } from '@/lib/supabase';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 export default function ClientHomePage() {
@@ -11,14 +12,18 @@ export default function ClientHomePage() {
   const [barbers, setBarbers] = useState<any[]>([]);
   const [services, setServices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
     const fetchData = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data: profileData } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-        if (profileData) setProfile(profileData);
+      if (!user) {
+        router.replace('/login');
+        return;
       }
+
+      const { data: profileData } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+      if (profileData) setProfile(profileData);
 
       // Fetch barbers
       const { data: barbersData } = await supabase.from('profiles').select('*').eq('role', 'barber');
@@ -33,6 +38,11 @@ export default function ClientHomePage() {
 
     fetchData();
   }, []);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push('/login');
+  };
 
   // Se todos os barbeiros estiverem fechados (ou o único barbeiro)
   const isClosed = barbers.length > 0 && barbers.every(b => !b.is_accepting_appointments);
@@ -64,13 +74,18 @@ export default function ClientHomePage() {
           <p className="text-zinc-500 font-bold uppercase tracking-widest text-[10px]">Bom dia,</p>
           <h1 className="text-xl font-bold text-white">{profile ? profile.full_name : 'Visitante'}</h1>
         </div>
-        <Link href="/client-home/perfil" className="w-12 h-12 bg-zinc-800 rounded-full border border-zinc-700 overflow-hidden flex items-center justify-center cursor-pointer active:scale-95 transition-transform">
-           {profile?.avatar_url ? (
-             <img src={profile.avatar_url} alt="User" className="w-full h-full object-cover" />
-           ) : (
-             <UserIcon className="text-zinc-500" />
-           )}
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link href="/client-home/perfil" className="w-10 h-10 bg-zinc-800 rounded-full border border-zinc-700 overflow-hidden flex items-center justify-center cursor-pointer active:scale-95 transition-transform shrink-0">
+             {profile?.avatar_url ? (
+               <img src={profile.avatar_url} alt="User" className="w-full h-full object-cover" />
+             ) : (
+               <UserIcon className="text-zinc-500" />
+             )}
+          </Link>
+          <button onClick={handleLogout} className="text-red-500/80 hover:text-red-500 active:scale-95 p-2 rounded-full hover:bg-red-500/10 transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+          </button>
+        </div>
       </header>
 
       {/* Banner ON/OFF */}
@@ -104,7 +119,7 @@ export default function ClientHomePage() {
                         <div className="bg-zinc-800 p-2 rounded-lg text-primary-container">
                           <Scissors className="size-6" />
                         </div>
-                        <span className="text-white font-black text-lg whitespace-nowrap">R$ {srv.price.toFixed(2).replace('.', ',')}</span>
+                        <span className="text-white font-black text-lg whitespace-nowrap">R$ {(Number(srv.price) || 0).toFixed(2).replace('.', ',')}</span>
                       </div>
                       <div>
                         <h4 className="text-white font-bold text-lg leading-none">{srv.name}</h4>

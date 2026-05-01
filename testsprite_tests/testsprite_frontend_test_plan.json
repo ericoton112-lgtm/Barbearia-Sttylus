@@ -1,0 +1,890 @@
+[
+  {
+    "id": "TC001",
+    "title": "Client books an appointment from service selection through confirmation",
+    "description": "Verifies a client can choose a service, select an accepting barber, pick a date within 7 days and an available time, and confirm the booking with a visible confirmation.",
+    "category": "Client Booking (end-to-end)",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Select a service from the client home list"
+      },
+      {
+        "type": "action",
+        "description": "Click the option to start scheduling"
+      },
+      {
+        "type": "action",
+        "description": "Select a barber who is accepting appointments"
+      },
+      {
+        "type": "action",
+        "description": "Select a date within the next 7 days"
+      },
+      {
+        "type": "action",
+        "description": "Select an available time slot"
+      },
+      {
+        "type": "action",
+        "description": "Confirm the appointment"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a booking confirmation is visible"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC002",
+    "title": "Existing client logs in and is routed to client area",
+    "description": "Verifies an existing client can log in and is routed to the client home area.",
+    "category": "Authentication (email/password)",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the user lands on the client home area"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC003",
+    "title": "Client signs up without invite code and lands in client area",
+    "description": "Verifies a new user can sign up without an invite code and is redirected into the client area after successful account creation.",
+    "category": "Authentication (email/password)",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Toggle to Signup mode"
+      },
+      {
+        "type": "action",
+        "description": "Fill in full name with Test Client"
+      },
+      {
+        "type": "action",
+        "description": "Fill in phone with 11999990000"
+      },
+      {
+        "type": "action",
+        "description": "Fill in email field with testclient+{{RAND}}@example.com"
+      },
+      {
+        "type": "action",
+        "description": "Fill in password field with Password123!."
+      },
+      {
+        "type": "action",
+        "description": "Submit the signup form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the user lands on the client home area"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC004",
+    "title": "User signs up with invite code and lands in professional dashboard",
+    "description": "Verifies a new user can sign up with an invite code and is redirected into the professional dashboard after successful account creation.",
+    "category": "Authentication (email/password)",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Toggle to Signup mode"
+      },
+      {
+        "type": "action",
+        "description": "Fill in full name with Test Barber"
+      },
+      {
+        "type": "action",
+        "description": "Fill in phone with 11999991111"
+      },
+      {
+        "type": "action",
+        "description": "Fill in email field with testbarber+{{RAND}}@example.com"
+      },
+      {
+        "type": "action",
+        "description": "Fill in password field with Password123!."
+      },
+      {
+        "type": "action",
+        "description": "Fill in invite code field with {{INVITE_CODE}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the signup form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the user lands on the professional dashboard"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC005",
+    "title": "Protected route redirects unauthenticated user to login",
+    "description": "Verifies that navigating to a protected page without an active session routes the user back to the login page.",
+    "category": "Authentication (email/password)",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /client-home"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the user is prompted to authenticate on the login page"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC006",
+    "title": "Client books an appointment starting from barber selection",
+    "description": "Verifies a client can start by selecting a barber, then select a service, date within 7 days, and time slot, and successfully confirm the booking.",
+    "category": "Client Booking (end-to-end)",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Select a barber from the client home list"
+      },
+      {
+        "type": "action",
+        "description": "Click the option to start scheduling"
+      },
+      {
+        "type": "action",
+        "description": "Select a service if not already selected"
+      },
+      {
+        "type": "action",
+        "description": "Select a date within the next 7 days"
+      },
+      {
+        "type": "action",
+        "description": "Select an available time slot"
+      },
+      {
+        "type": "action",
+        "description": "Confirm the appointment"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a booking confirmation is visible"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC007",
+    "title": "Session persists after refresh for authenticated user",
+    "description": "Verifies that after logging in, refreshing the page keeps the user authenticated and in the correct area.",
+    "category": "Authentication (email/password)",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Press F5"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the user remains in the authenticated area without being sent back to login"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC008",
+    "title": "Professional dashboard loads today’s summary and next client information",
+    "description": "Verifies a professional can access the dashboard and see today’s appointments summary and the next appointment section populated appropriately.",
+    "category": "Professional Dashboard (day view & realtime notifications)",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /professional-dashboard"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify today’s dashboard summary is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the next appointment section is displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC009",
+    "title": "View schedule by date and conclude an appointment",
+    "description": "Verifies the barber can view appointments for a selected date, conclude an appointment, and see the updated status reflected in the list.",
+    "category": "Professional Agenda (date-filtered schedule)",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_USER}} into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_PASSWORD}} into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the navigation item to open the professional agenda"
+      },
+      {
+        "type": "action",
+        "description": "Select a different valid date within the allowed date range"
+      },
+      {
+        "type": "action",
+        "description": "Open an appointment detail from the list"
+      },
+      {
+        "type": "action",
+        "description": "Change the appointment status to concluded"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the appointment shows the concluded status in the appointment list"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC010",
+    "title": "Professional toggles accepting appointments on the dashboard",
+    "description": "Verifies a professional can toggle whether they are accepting appointments and the UI reflects the updated availability state.",
+    "category": "Professional Dashboard (day view & realtime notifications)",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /professional-dashboard"
+      },
+      {
+        "type": "action",
+        "description": "Toggle accepting appointments setting"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the availability state indicator updates to match the new setting"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC011",
+    "title": "Cancel an appointment from agenda",
+    "description": "Verifies the barber can cancel an appointment from its detail view and the appointment list reflects the canceled status.",
+    "category": "Professional Agenda (date-filtered schedule)",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_USER}} into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_PASSWORD}} into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the navigation item to open the professional agenda"
+      },
+      {
+        "type": "action",
+        "description": "Open an appointment detail from the list"
+      },
+      {
+        "type": "action",
+        "description": "Change the appointment status to canceled"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the appointment shows the canceled status in the appointment list"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC012",
+    "title": "Professional marks the next appointment as completed",
+    "description": "Verifies a professional can complete the next appointment via check-in and the appointment status updates in the dashboard.",
+    "category": "Professional Dashboard (day view & realtime notifications)",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /professional-dashboard"
+      },
+      {
+        "type": "action",
+        "description": "Mark the next appointment as completed via the check-in action"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the appointment shows an updated completed status in the dashboard"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC013",
+    "title": "Update professional profile and toggle availability",
+    "description": "Verifies a professional can update profile details, toggle accepting appointments, save, and see the availability state persist after refresh.",
+    "category": "Profile Management (client & barber)",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_USER}} into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_PASSWORD}} into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the navigation item to open the professional profile page"
+      },
+      {
+        "type": "action",
+        "description": "Fill \"Pro Test Name\" into the full name field"
+      },
+      {
+        "type": "action",
+        "description": "Fill a valid phone number into the phone field"
+      },
+      {
+        "type": "action",
+        "description": "Toggle the accepting appointments setting"
+      },
+      {
+        "type": "action",
+        "description": "Save the profile"
+      },
+      {
+        "type": "action",
+        "description": "Refresh the page"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the accepting appointments setting reflects the last saved state"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC014",
+    "title": "Create a new service",
+    "description": "Verifies the barber can create a service with required fields and see it appear in the services list.",
+    "category": "Services Management (barber CRUD)",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_USER}} into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_PASSWORD}} into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the navigation item to open services management"
+      },
+      {
+        "type": "action",
+        "description": "Start creating a new service"
+      },
+      {
+        "type": "action",
+        "description": "Fill \"Test Service A\" into the service name field"
+      },
+      {
+        "type": "action",
+        "description": "Fill \"Basic service description\" into the service description field"
+      },
+      {
+        "type": "action",
+        "description": "Fill a valid price into the price field"
+      },
+      {
+        "type": "action",
+        "description": "Select a valid duration in the duration field"
+      },
+      {
+        "type": "action",
+        "description": "Save the service"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a service named \"Test Service A\" appears in the services list"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC015",
+    "title": "Edit an existing service",
+    "description": "Verifies the barber can edit a service and see the updated values reflected in the services list.",
+    "category": "Services Management (barber CRUD)",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_USER}} into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_PASSWORD}} into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the navigation item to open services management"
+      },
+      {
+        "type": "action",
+        "description": "Start creating a new service"
+      },
+      {
+        "type": "action",
+        "description": "Fill \"Test Service Edit\" into the service name field"
+      },
+      {
+        "type": "action",
+        "description": "Fill \"Original description\" into the service description field"
+      },
+      {
+        "type": "action",
+        "description": "Fill a valid price into the price field"
+      },
+      {
+        "type": "action",
+        "description": "Select a valid duration in the duration field"
+      },
+      {
+        "type": "action",
+        "description": "Save the service"
+      },
+      {
+        "type": "action",
+        "description": "Open the service named \"Test Service Edit\" from the list"
+      },
+      {
+        "type": "action",
+        "description": "Fill \"Test Service Edit Updated\" into the service name field"
+      },
+      {
+        "type": "action",
+        "description": "Save the changes"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a service named \"Test Service Edit Updated\" appears in the services list"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC016",
+    "title": "Delete a service",
+    "description": "Verifies the barber can delete a service and it is removed from the services list.",
+    "category": "Services Management (barber CRUD)",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_USER}} into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_PASSWORD}} into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the navigation item to open services management"
+      },
+      {
+        "type": "action",
+        "description": "Start creating a new service"
+      },
+      {
+        "type": "action",
+        "description": "Fill \"Test Service Delete\" into the service name field"
+      },
+      {
+        "type": "action",
+        "description": "Fill \"To be removed\" into the service description field"
+      },
+      {
+        "type": "action",
+        "description": "Fill a valid price into the price field"
+      },
+      {
+        "type": "action",
+        "description": "Select a valid duration in the duration field"
+      },
+      {
+        "type": "action",
+        "description": "Save the service"
+      },
+      {
+        "type": "action",
+        "description": "Open the service named \"Test Service Delete\" from the list"
+      },
+      {
+        "type": "action",
+        "description": "Delete the service"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a service named \"Test Service Delete\" is not shown in the services list"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC017",
+    "title": "Update client profile information",
+    "description": "Verifies a client can edit their full name and phone, save, and see the updated profile information persisted.",
+    "category": "Profile Management (client & barber)",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_USER}} into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_PASSWORD}} into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the navigation item to open the client profile page"
+      },
+      {
+        "type": "action",
+        "description": "Fill \"Client Test Name\" into the full name field"
+      },
+      {
+        "type": "action",
+        "description": "Fill a valid phone number into the phone field"
+      },
+      {
+        "type": "action",
+        "description": "Save the profile"
+      },
+      {
+        "type": "action",
+        "description": "Wait for the profile save to complete"
+      },
+      {
+        "type": "action",
+        "description": "Refresh the page"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the full name shows as \"Client Test Name\" on the profile page"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC018",
+    "title": "Booking cannot be confirmed without selecting a time slot",
+    "description": "Verifies the booking flow blocks confirmation until a time slot is selected and shows a validation error when attempting to confirm without one.",
+    "category": "Client Booking (end-to-end)",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the option to start scheduling"
+      },
+      {
+        "type": "action",
+        "description": "Select a barber who is accepting appointments"
+      },
+      {
+        "type": "action",
+        "description": "Select a service if not already selected"
+      },
+      {
+        "type": "action",
+        "description": "Select a date within the next 7 days"
+      },
+      {
+        "type": "action",
+        "description": "Attempt to confirm the appointment without selecting a time slot"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a time slot validation error is visible"
+      }
+    ],
+    "priority": "Low"
+  },
+  {
+    "id": "TC019",
+    "title": "Validate required fields when creating a service",
+    "description": "Verifies the barber cannot save a new service with missing required fields and sees a validation error.",
+    "category": "Services Management (barber CRUD)",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_USER}} into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Fill {{LOGIN_PASSWORD}} into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the navigation item to open services management"
+      },
+      {
+        "type": "action",
+        "description": "Start creating a new service"
+      },
+      {
+        "type": "action",
+        "description": "Leave the required fields empty"
+      },
+      {
+        "type": "action",
+        "description": "Attempt to save the service"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a required-field validation error is visible"
+      }
+    ],
+    "priority": "Low"
+  },
+  {
+    "id": "TC020",
+    "title": "Login requires password validation",
+    "description": "Verifies attempting to log in without a password shows a validation error and prevents login.",
+    "category": "Authentication (email/password)",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Toggle to Login mode"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with testuser@example.com"
+      },
+      {
+        "type": "action",
+        "description": "Attempt to submit the login form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a password validation error is visible"
+      }
+    ],
+    "priority": "Low"
+  }
+]

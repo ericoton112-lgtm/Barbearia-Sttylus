@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { Bell, Grid, Calendar, User, Scissors, Plus, Timer, MoreVertical, CheckCircle, Edit3, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 
@@ -12,6 +13,7 @@ export default function ProfessionalDashboardPage() {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   const fetchData = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -111,6 +113,11 @@ export default function ProfessionalDashboardPage() {
     }
   };
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push('/login');
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#131313] flex items-center justify-center">
@@ -175,10 +182,15 @@ export default function ProfessionalDashboardPage() {
             </label>
           )}
         </div>
-        <button onClick={handleOpenNotifications} className="relative text-primary-container p-2 shrink-0">
-          <Bell className="size-6" />
-          {hasUnread && <span className="absolute top-2 right-2.5 w-2 h-2 bg-red-500 rounded-full border border-zinc-900 animate-pulse"></span>}
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={handleOpenNotifications} className="relative text-primary-container p-2 shrink-0 hover:bg-zinc-800 rounded-full transition-colors">
+            <Bell className="size-6" />
+            {hasUnread && <span className="absolute top-2 right-2.5 w-2 h-2 bg-red-500 rounded-full border border-zinc-900 animate-pulse"></span>}
+          </button>
+          <button onClick={handleLogout} className="text-red-500/80 hover:text-red-500 active:scale-95 p-2 rounded-full hover:bg-red-500/10 transition-colors shrink-0">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+          </button>
+        </div>
       </header>
 
       {/* Notifications Dropdown */}
