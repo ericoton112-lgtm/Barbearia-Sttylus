@@ -95,8 +95,8 @@ export default function ProfessionalDashboardPage() {
           const registration = await navigator.serviceWorker.ready;
           const existingSub = await registration.pushManager.getSubscription();
           
-          if (!existingSub && Notification.permission === 'granted') {
-            const applicationServerKey = urlB64ToUint8Array(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!);
+          if (!existingSub && Notification.permission === 'granted' && process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY) {
+            const applicationServerKey = urlB64ToUint8Array(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY);
             const newSub = await registration.pushManager.subscribe({
               userVisibleOnly: true,
               applicationServerKey
