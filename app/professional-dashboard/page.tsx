@@ -35,7 +35,13 @@ export default function ProfessionalDashboardPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
       const { data: profileData } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-      if (profileData) setProfile(profileData);
+      if (profileData) {
+        if (profileData.role === 'client') {
+          router.replace('/client-home');
+          return;
+        }
+        setProfile(profileData);
+      }
 
       const todayStart = new Date();
       todayStart.setHours(0, 0, 0, 0);

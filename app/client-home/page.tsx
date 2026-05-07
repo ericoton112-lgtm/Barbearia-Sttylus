@@ -24,7 +24,13 @@ export default function ClientHomePage() {
       }
 
       const { data: profileData } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-      if (profileData) setProfile(profileData);
+      if (profileData) {
+        if (profileData.role === 'barber') {
+          router.replace('/professional-dashboard');
+          return;
+        }
+        setProfile(profileData);
+      }
 
       // Fetch barbers
       const { data: barbersData } = await supabase.from('profiles').select('*').eq('role', 'barber');

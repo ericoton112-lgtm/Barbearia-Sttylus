@@ -2,7 +2,7 @@
   "name": "Barbearia Styllus",
   "short_name": "Styllus",
   "description": "Agendamento e Gestão para Barbearia Styllus",
-  "start_url": "/client-home",
+  "start_url": "/",
   "display": "standalone",
   "background_color": "#131313",
   "theme_color": "#0057ff",

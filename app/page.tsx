@@ -1,5 +1,40 @@
-import { redirect } from 'next/navigation';
+'use client';
+
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabase';
 
 export default function RootPage() {
-  redirect('/login');
+  const router = useRouter();
+
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        router.replace('/login');
+        return;
+      }
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', session.user.id)
+        .single();
+
+      if (profile?.role === 'barber') {
+        router.replace('/professional-dashboard');
+      } else {
+        router.replace('/client-home');
+      }
+    };
+
+    checkUser();
+  }, [router]);
+
+  return (
+    <div className="min-h-screen bg-[#131313] flex items-center justify-center">
+      <div className="w-8 h-8 border-4 border-primary-container border-t-transparent rounded-full animate-spin"></div>
+    </div>
+  );
 }
