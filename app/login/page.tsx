@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { motion } from 'motion/react';
 import { Mail, Lock, Eye, EyeOff, ArrowRight, User, Phone, KeyRound } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -136,9 +135,7 @@ export default function LoginPage() {
         <div className="absolute -bottom-[10%] -right-[10%] w-[40%] h-[40%] bg-primary-container/5 blur-[100px] rounded-full"></div>
       </div>
 
-      <motion.main 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
+      <main 
         className="w-full max-w-md z-10 flex flex-col gap-8"
       >
         {/* Brand Identity */}
@@ -301,7 +298,7 @@ export default function LoginPage() {
             {isLogin ? 'Criar conta' : 'Fazer Login'}
           </button>
         </footer>
-      </motion.main>
+      </main>
 
       {/* Decorative Side Card foi removido, agora usamos background em tela inteira */}
     </div>
