@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { Bell, Grid, Calendar, User, Scissors, Plus, Timer, MoreVertical, CheckCircle, Edit3, X, Users } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
@@ -284,18 +283,13 @@ export default function ProfessionalDashboardPage() {
       </header>
 
       {/* Notifications Dropdown */}
-      <AnimatePresence>
         {showNotifications && (
-          <motion.div key="notif-container" className="fixed inset-0 z-50 flex justify-end p-5 pt-20">
-            <motion.div 
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          <div className="fixed inset-0 z-50 flex justify-end p-5 pt-20">
+            <div 
               onClick={() => setShowNotifications(false)}
               className="fixed inset-0 bg-black/50 backdrop-blur-sm -z-10"
             />
-            <motion.div 
-              initial={{ opacity: 0, y: -20, scale: 0.95 }} 
-              animate={{ opacity: 1, y: 0, scale: 1 }} 
-              exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            <div 
               className="w-80 max-h-[400px] overflow-y-auto bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl p-4"
             >
               <div className="flex justify-between items-center mb-4">
@@ -316,10 +310,10 @@ export default function ProfessionalDashboardPage() {
                   ))
                 )}
               </div>
-            </motion.div>
-          </motion.div>
+            </div>
+          </div>
         )}
-      </AnimatePresence>
+
 
       <main className="pt-24 px-5 space-y-8">
         {/* Welcome Section */}
@@ -330,9 +324,7 @@ export default function ProfessionalDashboardPage() {
 
         {/* Notificações Banner */}
         {permissionStatus === 'default' && (
-          <motion.section 
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
+          <section 
             className="bg-primary-container/20 border border-primary-container/30 p-4 rounded-2xl flex items-center justify-between gap-4"
           >
             <div className="flex items-center gap-3">
@@ -350,7 +342,7 @@ export default function ProfessionalDashboardPage() {
             >
               ATIVAR
             </button>
-          </motion.section>
+          </section>
         )}
 
         {/* Stats Grid */}

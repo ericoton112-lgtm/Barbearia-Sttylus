@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { Search, Scissors, Star, MapPin, ChevronRight, User as UserIcon, Calendar, Grid, Clock } from 'lucide-react';
-import { motion } from 'motion/react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -157,10 +156,7 @@ export default function ClientHomePage() {
              ) : (
                 services.filter(srv => selectedCategory === 'Todos' || (srv.category || 'Geral') === selectedCategory).map((srv, idx) => (
                   <Link href={`/client-home/agendar?serviceId=${srv.id}`} key={srv.id} className="shrink-0 snap-center">
-                    <motion.div 
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: idx * 0.1 }}
+                    <div 
                       className="w-64 bg-zinc-900/80 backdrop-blur-md border border-zinc-800 rounded-2xl p-5 relative overflow-hidden hover:border-zinc-700 active:scale-95 transition-all"
                     >
                       <div className="flex justify-between items-start mb-16">
@@ -173,7 +169,7 @@ export default function ClientHomePage() {
                         <h4 className="text-white font-bold text-lg leading-none">{srv.name}</h4>
                         <p className="text-zinc-500 text-sm mt-1">{srv.duration_minutes} min • {srv.category || 'Geral'}</p>
                       </div>
-                    </motion.div>
+                    </div>
                   </Link>
                 ))
              )}
