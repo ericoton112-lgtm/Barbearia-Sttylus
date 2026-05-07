@@ -30,9 +30,9 @@ export default function LoginPage() {
           .single();
 
         if (profile?.role === 'barber') {
-          router.replace('/professional-dashboard');
+          window.location.href = '/professional-dashboard';
         } else {
-          router.replace('/client-home');
+          window.location.href = '/client-home';
         }
       }
     };
@@ -63,9 +63,9 @@ export default function LoginPage() {
             .single();
 
           if (profile?.role === 'barber') {
-            router.push('/professional-dashboard');
+            window.location.href = '/professional-dashboard';
           } else {
-            router.push('/client-home');
+            window.location.href = '/client-home';
           }
         }
       } else {
@@ -89,9 +89,9 @@ export default function LoginPage() {
 
         // Redirecionar conforme o cargo
         if (isBarber) {
-          router.push('/professional-dashboard');
+          window.location.href = '/professional-dashboard';
         } else {
-          router.push('/client-home');
+          window.location.href = '/client-home';
         }
       }
     } catch (err: any) {
