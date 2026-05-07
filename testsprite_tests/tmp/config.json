@@ -2,19 +2,18 @@
   "status": "commited",
   "type": "frontend",
   "scope": "codebase",
-  "localEndpoint": "http://localhost:3002",
+  "localEndpoint": "http://localhost:3000",
   "loginUser": "guilhermefarias1608@gmail.com",
   "loginPassword": "Ohana1608",
   "executionArgs": {
     "projectName": "sttylus",
     "projectPath": "c:\\Users\\erico\\Downloads\\sttylus",
     "testIds": [],
-    "additionalInstruction": "The issues found previously have been fixed (logout button added, auth guards added, empty service price crash fixed).",
+    "additionalInstruction": "",
     "serverMode": "development",
     "envs": {
       "API_KEY": "sk-user-L_XRk8oeINsNa8lBL8TD-EZnxnwOjvt9G7k3dfim5OsIEzGPTf0pzB92JOxMZFt4g02mtN2BSyhHC9HGFo-vOBHg1slgAwVf3CBLfOmdiLisaOoOLVFwwZxnMcS_tZNKSe4"
     }
   },
-  "serverPort": 59096,
-  "proxy": "http://9e390235-dfd4-4095-9bee-e03138b73d0b:KY9CTm8hLMWpxVVe46JV4uicfAoMvfo6@tun.testsprite.com:8080"
+  "serverPort": 50939
 }

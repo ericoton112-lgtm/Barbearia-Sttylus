@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Search, Scissors, Star, MapPin, ChevronRight, User as UserIcon, Calendar, Grid } from 'lucide-react';
+import { Search, Scissors, Star, MapPin, ChevronRight, User as UserIcon, Calendar, Grid, Clock } from 'lucide-react';
 import { motion } from 'motion/react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
@@ -12,6 +12,7 @@ export default function ClientHomePage() {
   const [barbers, setBarbers] = useState<any[]>([]);
   const [services, setServices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedCategory, setSelectedCategory] = useState<string>('Todos');
   const router = useRouter();
 
   useEffect(() => {
@@ -49,8 +50,31 @@ export default function ClientHomePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#131313] flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-primary-container border-t-transparent rounded-full animate-spin"></div>
+      <div className="bg-[#131313] min-h-screen pb-28 relative">
+        <div className="px-5 pt-8 pb-4">
+          <div className="flex justify-between items-center mb-8">
+            <div className="w-40 h-8 bg-zinc-900 rounded-lg animate-pulse"></div>
+            <div className="w-10 h-10 bg-zinc-900 rounded-full animate-pulse"></div>
+          </div>
+          <div className="w-full h-14 bg-zinc-900 rounded-2xl animate-pulse mb-8"></div>
+          
+          <div className="mb-8">
+            <div className="w-32 h-6 bg-zinc-900 rounded-lg animate-pulse mb-4"></div>
+            <div className="flex gap-4 overflow-hidden">
+               <div className="w-64 h-32 bg-zinc-900 rounded-2xl animate-pulse shrink-0"></div>
+               <div className="w-64 h-32 bg-zinc-900 rounded-2xl animate-pulse shrink-0"></div>
+            </div>
+          </div>
+
+          <div>
+            <div className="w-48 h-6 bg-zinc-900 rounded-lg animate-pulse mb-4"></div>
+            <div className="flex gap-4 overflow-hidden">
+               <div className="w-32 h-32 bg-zinc-900 rounded-2xl animate-pulse shrink-0"></div>
+               <div className="w-32 h-32 bg-zinc-900 rounded-2xl animate-pulse shrink-0"></div>
+               <div className="w-32 h-32 bg-zinc-900 rounded-2xl animate-pulse shrink-0"></div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -103,11 +127,29 @@ export default function ClientHomePage() {
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-bold text-white">Serviços</h3>
           </div>
+
+          {/* Category Pills */}
+          <div className="flex overflow-x-auto gap-2 pb-4 no-scrollbar -mx-5 px-5">
+            {['Todos', ...Array.from(new Set(services.map(s => s.category || 'Geral')))].map(cat => (
+              <button
+                key={cat}
+                onClick={() => setSelectedCategory(cat as string)}
+                className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-colors border ${
+                  selectedCategory === cat 
+                    ? 'bg-primary-container text-white border-primary-container' 
+                    : 'bg-zinc-900 text-zinc-400 border-zinc-800 hover:border-zinc-700'
+                }`}
+              >
+                {cat as string}
+              </button>
+            ))}
+          </div>
+
           <div className="flex overflow-x-auto gap-4 pb-4 no-scrollbar -mx-5 px-5 snap-x">
-             {services.length === 0 ? (
-                <p className="text-zinc-500 text-sm w-full text-center py-4 bg-zinc-900 rounded-xl border border-zinc-800">Nenhum serviço disponível no momento.</p>
+             {services.filter(srv => selectedCategory === 'Todos' || (srv.category || 'Geral') === selectedCategory).length === 0 ? (
+                <p className="text-zinc-500 text-sm w-full text-center py-4 bg-zinc-900 rounded-xl border border-zinc-800">Nenhum serviço nesta categoria.</p>
              ) : (
-                services.map((srv, idx) => (
+                services.filter(srv => selectedCategory === 'Todos' || (srv.category || 'Geral') === selectedCategory).map((srv, idx) => (
                   <Link href={`/client-home/agendar?serviceId=${srv.id}`} key={srv.id} className="shrink-0 snap-center">
                     <motion.div 
                       initial={{ opacity: 0, x: 20 }}
@@ -123,7 +165,7 @@ export default function ClientHomePage() {
                       </div>
                       <div>
                         <h4 className="text-white font-bold text-lg leading-none">{srv.name}</h4>
-                        <p className="text-zinc-500 text-sm mt-1">{srv.duration_minutes} min</p>
+                        <p className="text-zinc-500 text-sm mt-1">{srv.duration_minutes} min • {srv.category || 'Geral'}</p>
                       </div>
                     </motion.div>
                   </Link>
@@ -139,8 +181,8 @@ export default function ClientHomePage() {
             {barbers.length === 0 ? (
                <p className="text-zinc-500 text-sm">Nenhum barbeiro encontrado.</p>
             ) : (
-               barbers.map((barber, idx) => (
-                 <div key={barber.id} className="shrink-0 w-32 snap-center flex flex-col items-center">
+                barbers.map((barber, idx) => (
+                 <Link href={`/client-home/barbeiro/${barber.id}`} key={barber.id} className="shrink-0 w-32 snap-center flex flex-col items-center cursor-pointer active:scale-95 transition-transform">
                    <div className="w-20 h-20 bg-zinc-800 rounded-full border border-zinc-700 overflow-hidden flex items-center justify-center shadow-lg relative mb-3">
                      {barber.avatar_url ? (
                        <img src={barber.avatar_url} alt={barber.full_name} className="w-full h-full object-cover" />
@@ -158,7 +200,7 @@ export default function ClientHomePage() {
                      <Star className="size-3 fill-current" />
                      <span className="text-xs font-bold">5.0</span>
                    </div>
-                 </div>
+                 </Link>
                ))
             )}
           </div>
@@ -170,6 +212,7 @@ export default function ClientHomePage() {
       <nav className="bg-zinc-900/95 backdrop-blur-md fixed bottom-0 w-full rounded-t-2xl z-30 border-t border-zinc-800 shadow-[0_-4px_20px_rgba(0,0,0,0.4)] flex justify-around items-center h-20 px-4 pb-4">
         <NavItem active href="/client-home" icon={<Grid />} label="Início" />
         <NavItem href="/client-home/agendar" icon={<Calendar />} label="Agendar" />
+        <NavItem href="/client-home/agendamentos" icon={<Clock />} label="Histórico" />
         <NavItem href="/client-home/perfil" icon={<UserIcon />} label="Perfil" />
       </nav>
     </div>

@@ -1,115 +1,72 @@
 version: "2"
 type: frontend
 tech_stack:
-  - React
-  - Next.js
-  - Tailwind CSS
-  - Supabase
-  - Lucide React
-  - Framer Motion
+  - next.js
+  - react
+  - tailwindcss
+  - supabase
+  - lucide-react
+  - motion/react
 routes:
   - path: /login
     file: app/login/page.tsx
     auth_required: false
-    description: User authentication (login, signup, Google OAuth)
+    description: User login and registration
   - path: /client-home
     file: app/client-home/page.tsx
     auth_required: true
-    description: Home page for clients showing services and available barbers
+    description: Client home page showing barbers and services
   - path: /client-home/agendar
     file: app/client-home/agendar/page.tsx
     auth_required: true
-    description: Step-by-step appointment booking flow for clients
-  - path: /client-home/perfil
-    file: app/client-home/perfil/page.tsx
-    auth_required: true
-    description: Client profile management
+    description: Appointment booking flow for clients
   - path: /professional-dashboard
     file: app/professional-dashboard/page.tsx
     auth_required: true
-    description: Dashboard for barbers with today's appointments and real-time notifications
-  - path: /professional-dashboard/agenda
-    file: app/professional-dashboard/agenda/page.tsx
-    auth_required: true
-    description: Barber's schedule management
-  - path: /professional-dashboard/servicos
-    file: app/professional-dashboard/servicos/page.tsx
-    auth_required: true
-    description: Barber's services management
+    description: Dashboard for professionals showing schedule and earnings
   - path: /professional-dashboard/perfil
     file: app/professional-dashboard/perfil/page.tsx
     auth_required: true
-    description: Barber profile management
-  - path: /auth/callback
-    file: app/auth/callback/page.tsx
-    auth_required: false
-    description: OAuth callback route for Supabase authentication
+    description: Professional profile settings including dynamic work schedule
 features:
-  - name: Authentication
-    description: Login with email/password or Google OAuth, and signup with optional invite code for barbers.
+  - name: User Login and Registration
+    description: Login with email/password or create new account
     files:
       - app/login/page.tsx
     entry_route: /login
     user_interactions:
-      - Fill email and password input fields
-      - Toggle between Login and Signup modes
-      - Enter full name, phone, and optional invite code (signup)
-      - Click Login/Signup button
-      - Click 'Entrar com Google' to authenticate via OAuth
-      - View error messages on invalid credentials
+      - Fill email and password
+      - Toggle login/signup
+      - Submit form
     api_calls:
       - method: POST
-        endpoint: supabase.auth.signInWithPassword
-      - method: POST
-        endpoint: supabase.auth.signUp
-      - method: GET
-        endpoint: supabase.auth.signInWithOAuth
+        endpoint: Supabase Auth
     auth_required: false
-  - name: Client Booking
-    description: Booking an appointment selecting barber, service, date and time.
+  - name: Appointment Booking
+    description: Client selects barber, service, date, and time
     files:
-      - app/client-home/page.tsx
       - app/client-home/agendar/page.tsx
-    entry_route: /client-home
+    entry_route: /client-home/agendar
     user_interactions:
-      - View available services and barbers
-      - Click on a service to pre-select it
-      - Select a barber from the list
-      - Select a service (if not pre-selected)
-      - Select a date from the next 7 days
-      - Select an available time slot
-      - Click 'Confirmar Agendamento'
+      - Select Barber
+      - Select Service
+      - Select Date and Time from dynamic generated slots
+      - Confirm Appointment
     api_calls:
-      - method: GET
-        endpoint: supabase.from('profiles')
-      - method: GET
-        endpoint: supabase.from('services')
-      - method: GET
-        endpoint: supabase.from('appointments')
       - method: POST
-        endpoint: supabase.from('appointments').insert
-      - method: POST
-        endpoint: supabase.from('notifications').insert
+        endpoint: Supabase appointments
     auth_required: true
-  - name: Professional Dashboard
-    description: View daily appointments, earnings, and next client in real-time.
+  - name: Professional Work Schedule Configuration
+    description: Professional configures start/end time, lunch break, and work days
     files:
-      - app/professional-dashboard/page.tsx
-    entry_route: /professional-dashboard
+      - app/professional-dashboard/perfil/page.tsx
+    entry_route: /professional-dashboard/perfil
     user_interactions:
-      - View today's stats (earnings, appointments)
-      - Toggle 'is_accepting_appointments' switch
-      - View next client details
-      - Click 'Check-in' to complete an appointment
-      - Click bell icon to view notifications
+      - Update work_start_time
+      - Update work_end_time
+      - Select work_days array
     api_calls:
-      - method: GET
-        endpoint: supabase.from('appointments')
-      - method: GET
-        endpoint: supabase.from('notifications')
-      - method: POST
-        endpoint: supabase.from('appointments').update
-      - method: POST
-        endpoint: supabase.channel('realtime_notifications')
+      - method: UPDATE
+        endpoint: Supabase profiles
     auth_required: true
 known_limitations: []

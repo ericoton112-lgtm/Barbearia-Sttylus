@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { Grid, Calendar, User as UserIcon, LogOut, CheckCircle, Camera } from 'lucide-react';
+import { Grid, Calendar, User as UserIcon, LogOut, CheckCircle, Camera, Clock } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
@@ -184,6 +184,7 @@ export default function ClientProfilePage() {
       <nav className="bg-zinc-900/95 backdrop-blur-md fixed bottom-0 w-full rounded-t-2xl z-30 border-t border-zinc-800 shadow-[0_-4px_20px_rgba(0,0,0,0.4)] flex justify-around items-center h-20 px-4 pb-4">
         <NavItem href="/client-home" icon={<Grid />} label="Início" />
         <NavItem href="/client-home/agendar" icon={<Calendar />} label="Agendar" />
+        <NavItem href="/client-home/agendamentos" icon={<Clock />} label="Histórico" />
         <NavItem active href="/client-home/perfil" icon={<UserIcon />} label="Perfil" />
       </nav>
     </div>

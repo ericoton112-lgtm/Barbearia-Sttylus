@@ -1,15 +1,31 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { Bell, Grid, Calendar, User, Scissors, Plus, Timer, MoreVertical, CheckCircle, Edit3, X } from 'lucide-react';
+import { Bell, Grid, Calendar, User, Scissors, Plus, Timer, MoreVertical, CheckCircle, Edit3, X, Users } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 
+function urlB64ToUint8Array(base64String: string) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding)
+    .replace(/\-/g, '+')
+    .replace(/_/g, '/');
+
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
 export default function ProfessionalDashboardPage() {
   const [profile, setProfile] = useState<any>(null);
   const [appointments, setAppointments] = useState<any[]>([]);
+  const [monthlyAppointments, setMonthlyAppointments] = useState<any[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -42,6 +58,22 @@ export default function ProfessionalDashboardPage() {
 
       if (appts) setAppointments(appts);
 
+      const monthStart = new Date();
+      monthStart.setDate(1);
+      monthStart.setHours(0, 0, 0, 0);
+
+      const { data: monthAppts } = await supabase
+        .from('appointments')
+        .select(`
+          status,
+          service:services!service_id (price)
+        `)
+        .eq('barber_id', user.id)
+        .gte('appointment_date', monthStart.toISOString())
+        .lte('appointment_date', todayEnd.toISOString());
+
+      if (monthAppts) setMonthlyAppointments(monthAppts);
+
       // Fetch Notifications
       const { data: notifs } = await supabase
         .from('notifications')
@@ -50,6 +82,38 @@ export default function ProfessionalDashboardPage() {
         .order('created_at', { ascending: false });
 
       if (notifs) setNotifications(notifs);
+
+      // Push Notification Subscription
+      if ('serviceWorker' in navigator && 'PushManager' in window) {
+        try {
+          const registration = await navigator.serviceWorker.ready;
+          const existingSub = await registration.pushManager.getSubscription();
+          
+          if (!existingSub) {
+            const permission = await Notification.requestPermission();
+            if (permission === 'granted') {
+              const applicationServerKey = urlB64ToUint8Array(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!);
+              const newSub = await registration.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey
+              });
+              
+              const subJson = newSub.toJSON();
+              
+              // Save to DB
+              await supabase.from('push_subscriptions').insert({
+                user_id: user.id,
+                endpoint: subJson.endpoint,
+                p256dh: subJson.keys?.p256dh,
+                auth: subJson.keys?.auth
+              });
+            }
+          }
+        } catch (e) {
+          console.error('Push error:', e);
+        }
+      }
+
     }
     setLoading(false);
   };
@@ -63,7 +127,7 @@ export default function ProfessionalDashboardPage() {
       if (!user) return;
       
       channel = supabase
-        .channel('realtime_notifications')
+        .channel(`realtime_notifications_${Date.now()}_${Math.random()}`)
         .on(
           'postgres_changes',
           { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
@@ -133,6 +197,12 @@ export default function ProfessionalDashboardPage() {
   
   const totalAppointments = appointments.length;
 
+  const monthlyEarnings = monthlyAppointments
+    .filter(a => a.status === 'concluído' || a.status === 'confirmado')
+    .reduce((sum, a) => sum + Number(a.service?.price || 0), 0);
+    
+  const monthlyCompleted = monthlyAppointments.filter(a => a.status === 'concluído' || a.status === 'confirmado').length;
+
   const now = new Date();
   const nextClient = appointments.find(a => new Date(a.appointment_date) > now && a.status !== 'cancelado' && a.status !== 'concluído');
 
@@ -140,9 +210,6 @@ export default function ProfessionalDashboardPage() {
     const d = new Date(dateStr);
     return d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
   };
-  
-  const getHour = (dateStr: string) => new Date(dateStr).getHours().toString().padStart(2, '0');
-  const getAmPm = (dateStr: string) => new Date(dateStr).getHours() >= 12 ? 'PM' : 'AM';
 
   const hasUnread = notifications.some(n => !n.is_read);
 
@@ -161,25 +228,30 @@ export default function ProfessionalDashboardPage() {
       <div className="relative z-10">
       {/* TopAppBar */}
       <header className="bg-zinc-950/80 backdrop-blur-md fixed top-0 w-full z-40 border-b border-zinc-900 px-5 py-4 flex justify-between items-center">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full overflow-hidden border border-zinc-800 bg-zinc-800 flex items-center justify-center shrink-0">
+        <div className="flex items-center gap-3 flex-1 overflow-hidden">
+          <Link href="/professional-dashboard/perfil" className="w-10 h-10 rounded-full overflow-hidden border-2 border-transparent hover:border-primary-container bg-zinc-800 flex items-center justify-center shrink-0 transition-all active:scale-95 shadow-lg cursor-pointer">
              {profile?.avatar_url ? (
                <img src={profile.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
              ) : (
-               <User className="text-zinc-500" />
+               <User className="text-zinc-500 size-5" />
              )}
-          </div>
-          <h1 className="text-xl font-black tracking-tighter text-white uppercase italic font-sans shrink-0">STTYLUS</h1>
+          </Link>
+          <h1 className="text-[16px] sm:text-lg font-black tracking-tighter text-white uppercase italic font-sans shrink-0 truncate">BARBEARIA STYLLUS</h1>
           {profile && (
-            <label className="relative inline-flex items-center cursor-pointer ml-1">
-              <input 
-                type="checkbox" 
-                className="sr-only peer" 
-                checked={profile.is_accepting_appointments} 
-                onChange={toggleStatus} 
-              />
-              <div className="w-10 h-5 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-500 shadow-[0_0_12px_rgba(34,197,94,0.1)] peer-checked:shadow-[0_0_12px_rgba(34,197,94,0.4)]"></div>
-            </label>
+            <div className="flex items-center gap-2 ml-auto shrink-0 mr-2">
+              <span className={`text-[10px] font-black tracking-widest uppercase transition-colors ${profile.is_accepting_appointments ? 'text-primary-container drop-shadow-[0_0_8px_rgba(0,87,255,0.5)]' : 'text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.5)]'}`}>
+                {profile.is_accepting_appointments ? 'ON' : 'OFF'}
+              </span>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  className="sr-only peer" 
+                  checked={profile.is_accepting_appointments} 
+                  onChange={toggleStatus} 
+                />
+                <div className={`w-12 h-6 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:rounded-full after:h-5 after:w-5 after:transition-all border shadow-inner ${profile.is_accepting_appointments ? 'bg-primary-container border-primary-container/80 shadow-[0_0_15px_rgba(0,87,255,0.4)] after:bg-white' : 'bg-red-500/20 border-red-500/50 after:bg-red-500'}`}></div>
+              </label>
+            </div>
           )}
         </div>
         <div className="flex items-center gap-2">
@@ -196,17 +268,17 @@ export default function ProfessionalDashboardPage() {
       {/* Notifications Dropdown */}
       <AnimatePresence>
         {showNotifications && (
-          <>
+          <motion.div key="notif-container" className="fixed inset-0 z-50 flex justify-end p-5 pt-20">
             <motion.div 
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => setShowNotifications(false)}
-              className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm -z-10"
             />
             <motion.div 
               initial={{ opacity: 0, y: -20, scale: 0.95 }} 
               animate={{ opacity: 1, y: 0, scale: 1 }} 
               exit={{ opacity: 0, y: -20, scale: 0.95 }}
-              className="fixed top-20 right-5 w-80 max-h-[400px] overflow-y-auto bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl z-50 p-4"
+              className="w-80 max-h-[400px] overflow-y-auto bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl p-4"
             >
               <div className="flex justify-between items-center mb-4">
                 <h3 className="font-bold text-white">Notificações</h3>
@@ -227,15 +299,15 @@ export default function ProfessionalDashboardPage() {
                 )}
               </div>
             </motion.div>
-          </>
+          </motion.div>
         )}
       </AnimatePresence>
 
       <main className="pt-24 px-5 space-y-8">
         {/* Welcome Section */}
         <section>
-          <h1 className="text-3xl font-extrabold text-white">Dashboard</h1>
-          <p className="text-[#c3c5d9]">Bem-vindo de volta, {profile ? profile.full_name?.split(' ')[0] : 'Master Barber'}.</p>
+          <h1 className="text-3xl font-extrabold text-white">Painel</h1>
+          <p className="text-[#c3c5d9]">Bem-vindo de volta, {profile ? profile.full_name?.split(' ')[0] : 'Barbeiro'}.</p>
         </section>
 
         {/* Stats Grid */}
@@ -306,6 +378,25 @@ export default function ProfessionalDashboardPage() {
           )}
         </section>
 
+        {/* Relatório Mensal */}
+        <section className="bg-zinc-900 border border-zinc-800 p-5 rounded-2xl relative overflow-hidden">
+          <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary-container/20 rounded-full blur-2xl"></div>
+          <h3 className="text-sm font-bold text-zinc-400 uppercase tracking-widest mb-4">Mês Atual</h3>
+          <div className="flex items-end justify-between">
+            <div>
+              <p className="text-3xl font-black text-white">R$ {monthlyEarnings.toFixed(2).replace('.', ',')}</p>
+              <p className="text-sm text-green-400 font-bold mt-1">+{monthlyCompleted} cortes realizados</p>
+            </div>
+            <div className="flex gap-1 items-end h-12">
+              <div className="w-2 bg-zinc-800 rounded-t h-[30%]"></div>
+              <div className="w-2 bg-zinc-800 rounded-t h-[50%]"></div>
+              <div className="w-2 bg-zinc-700 rounded-t h-[40%]"></div>
+              <div className="w-2 bg-primary-container rounded-t h-[80%]"></div>
+              <div className="w-2 bg-primary-container/50 rounded-t h-[60%]"></div>
+            </div>
+          </div>
+        </section>
+
         {/* Daily View */}
         <section className="space-y-4">
           <div className="flex items-center justify-between mb-4">
@@ -320,8 +411,7 @@ export default function ProfessionalDashboardPage() {
             {appointments.map((appt) => (
                <TimeSlot 
                  key={appt.id}
-                 time={getHour(appt.appointment_date)} 
-                 ampm={getAmPm(appt.appointment_date)} 
+                 time={formatTime(appt.appointment_date)} 
                  client={appt.client?.full_name || 'Cliente'} 
                  service={appt.service?.name} 
                  duration={`${appt.service?.duration_minutes}m`} 
@@ -337,6 +427,7 @@ export default function ProfessionalDashboardPage() {
       <nav className="bg-zinc-900/95 backdrop-blur-md fixed bottom-0 w-full rounded-t-2xl z-30 border-t border-zinc-800 shadow-[0_-4px_20px_rgba(0,0,0,0.4)] flex justify-around items-center h-20 px-4 pb-4">
         <NavItem active href="/professional-dashboard" icon={<Grid />} label="Início" />
         <NavItem href="/professional-dashboard/agenda" icon={<Calendar />} label="Agenda" />
+        <NavItem href="/professional-dashboard/equipe" icon={<Users />} label="Equipe" />
         <NavItem href="/professional-dashboard/servicos" icon={<Scissors />} label="Serviços" />
         <NavItem href="/professional-dashboard/perfil" icon={<User />} label="Perfil" />
       </nav>
@@ -344,14 +435,13 @@ export default function ProfessionalDashboardPage() {
   );
 }
 
-function TimeSlot({ time, ampm, client, service, duration, status }: any) {
+function TimeSlot({ time, client, service, duration, status }: any) {
   const isConcluido = status === 'concluído';
   return (
     <div className={`p-4 rounded-xl flex items-center justify-between transition-all bg-[#1A1A1A] ${isConcluido ? 'border-l-4 border-green-600 opacity-60' : 'border-l-4 border-blue-600'}`}>
       <div className="flex items-center gap-4">
-        <div className="text-center w-12">
+        <div className="text-center w-14 shrink-0">
           <span className="block text-xl font-bold text-white">{time}</span>
-          <span className="block text-[10px] text-zinc-500 font-bold uppercase tracking-widest">{ampm}</span>
         </div>
         <div className="h-8 w-[1px] bg-zinc-800"></div>
         <div>

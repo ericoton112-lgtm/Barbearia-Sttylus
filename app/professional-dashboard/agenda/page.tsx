@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { Grid, Calendar, User as UserIcon, Scissors, ChevronLeft, ChevronRight, MoreVertical } from 'lucide-react';
+import { Grid, Calendar, User as UserIcon, Scissors, ChevronLeft, ChevronRight, MoreVertical, Users } from 'lucide-react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { motion } from 'motion/react';
@@ -84,11 +84,24 @@ export default function ProfessionalAgendaPage() {
            d1.getFullYear() === d2.getFullYear();
   };
 
-  const getHour = (dateStr: string) => new Date(dateStr).getHours().toString().padStart(2, '0');
-  const getAmPm = (dateStr: string) => new Date(dateStr).getHours() >= 12 ? 'PM' : 'AM';
+  const formatTime = (dateStr: string) => {
+    const d = new Date(dateStr);
+    return d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  };
 
   return (
-    <div className="bg-[#131313] text-[#e5e2e1] min-h-screen pb-28">
+    <div className="bg-[#131313] text-[#e5e2e1] min-h-screen pb-28 relative overflow-hidden">
+      {/* Background Image */}
+      <div className="fixed inset-0 z-0 pointer-events-none">
+        <img 
+          src="https://images.unsplash.com/photo-1585747860715-2ba37e788b70?q=80&w=2074&auto=format&fit=crop" 
+          alt="Barbershop Background" 
+          className="w-full h-full object-cover opacity-[0.15] grayscale"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#131313]/40 via-[#131313]/80 to-[#131313]"></div>
+      </div>
+
+      <div className="relative z-10">
       {/* Header */}
       <header className="bg-zinc-950/80 backdrop-blur-md fixed top-0 w-full z-40 px-5 pt-8 pb-4 border-b border-zinc-900">
         <h1 className="text-2xl font-black text-white mb-4">Agenda</h1>
@@ -138,8 +151,20 @@ export default function ProfessionalAgendaPage() {
         </div>
 
         {loading ? (
-          <div className="flex justify-center py-20">
-            <div className="w-8 h-8 border-4 border-primary-container border-t-transparent rounded-full animate-spin"></div>
+          <div className="space-y-3 mt-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="p-4 rounded-xl flex items-center justify-between bg-[#1A1A1A] border-l-4 border-zinc-800">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-8 bg-zinc-800 rounded animate-pulse"></div>
+                  <div className="h-10 w-[1px] bg-zinc-800 shrink-0"></div>
+                  <div className="flex flex-col gap-2">
+                    <div className="w-32 h-5 bg-zinc-800 rounded animate-pulse"></div>
+                    <div className="w-24 h-4 bg-zinc-800 rounded animate-pulse"></div>
+                  </div>
+                </div>
+                <div className="w-12 h-6 bg-zinc-800 rounded animate-pulse"></div>
+              </div>
+            ))}
           </div>
         ) : (
           <div className="space-y-3">
@@ -155,8 +180,7 @@ export default function ProfessionalAgendaPage() {
                  <TimeSlot 
                    key={appt.id}
                    id={appt.id}
-                   time={getHour(appt.appointment_date)} 
-                   ampm={getAmPm(appt.appointment_date)} 
+                   time={formatTime(appt.appointment_date)} 
                    client={appt.client?.full_name || 'Cliente'}
                    phone={appt.client?.phone || ''}
                    service={appt.service?.name} 
@@ -169,11 +193,13 @@ export default function ProfessionalAgendaPage() {
           </div>
         )}
       </main>
+      </div>
 
       {/* Bottom Nav Bar */}
       <nav className="bg-zinc-900/95 backdrop-blur-md fixed bottom-0 w-full rounded-t-2xl z-30 border-t border-zinc-800 shadow-[0_-4px_20px_rgba(0,0,0,0.4)] flex justify-around items-center h-20 px-4 pb-4">
         <NavItem href="/professional-dashboard" icon={<Grid />} label="Início" />
         <NavItem active href="/professional-dashboard/agenda" icon={<Calendar />} label="Agenda" />
+        <NavItem href="/professional-dashboard/equipe" icon={<Users />} label="Equipe" />
         <NavItem href="/professional-dashboard/servicos" icon={<Scissors />} label="Serviços" />
         <NavItem href="/professional-dashboard/perfil" icon={<UserIcon />} label="Perfil" />
       </nav>
@@ -181,7 +207,7 @@ export default function ProfessionalAgendaPage() {
   );
 }
 
-function TimeSlot({ id, time, ampm, client, phone, service, duration, status, onStatusChange }: any) {
+function TimeSlot({ id, time, client, phone, service, duration, status, onStatusChange }: any) {
   const [menuOpen, setMenuOpen] = useState(false);
   const isConcluido = status === 'concluído';
   const isCancelado = status === 'cancelado';
@@ -193,9 +219,8 @@ function TimeSlot({ id, time, ampm, client, phone, service, duration, status, on
       className={`p-4 rounded-xl flex items-center justify-between transition-all bg-[#1A1A1A] relative ${isConcluido ? 'border-l-4 border-green-600 opacity-60' : isCancelado ? 'border-l-4 border-red-600 opacity-40' : 'border-l-4 border-blue-600'}`}
     >
       <div className="flex items-center gap-4">
-        <div className="text-center w-12 shrink-0">
+        <div className="text-center w-14 shrink-0">
           <span className="block text-xl font-bold text-white">{time}</span>
-          <span className="block text-[10px] text-zinc-500 font-bold uppercase tracking-widest">{ampm}</span>
         </div>
         <div className="h-10 w-[1px] bg-zinc-800 shrink-0"></div>
         <div className="min-w-0">

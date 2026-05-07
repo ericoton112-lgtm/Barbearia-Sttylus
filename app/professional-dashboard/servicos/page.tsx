@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Grid, Calendar, User as UserIcon, Scissors, Plus, X, Edit3, Trash2 } from 'lucide-react';
+import { Grid, Calendar, User as UserIcon, Scissors, Plus, X, Edit3, Trash2, Users } from 'lucide-react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { motion, AnimatePresence } from 'motion/react';
@@ -14,7 +14,7 @@ export default function ProfessionalServicesPage() {
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingService, setEditingService] = useState<any>(null);
-  const [formData, setFormData] = useState({ name: '', description: '', price: '', duration_minutes: '' });
+  const [formData, setFormData] = useState({ name: '', description: '', price: '', duration_minutes: '', category: 'Geral' });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
 
@@ -73,11 +73,12 @@ export default function ProfessionalServicesPage() {
         name: service.name,
         description: service.description || '',
         price: service.price.toString(),
-        duration_minutes: service.duration_minutes.toString()
+        duration_minutes: service.duration_minutes.toString(),
+        category: service.category || 'Geral'
       });
     } else {
       setEditingService(null);
-      setFormData({ name: '', description: '', price: '', duration_minutes: '' });
+      setFormData({ name: '', description: '', price: '', duration_minutes: '', category: 'Geral' });
     }
     setIsModalOpen(true);
   };
@@ -100,7 +101,8 @@ export default function ProfessionalServicesPage() {
       description: formData.description,
       price: parseFloat(formData.price),
       duration_minutes: parseInt(formData.duration_minutes),
-      barber_id: barberId
+      barber_id: barberId,
+      category: formData.category
     };
 
     console.log('Enviando payload:', payload);
@@ -134,7 +136,18 @@ export default function ProfessionalServicesPage() {
   };
 
   return (
-    <div className="bg-[#131313] text-[#e5e2e1] min-h-screen pb-28">
+    <div className="bg-[#131313] text-[#e5e2e1] min-h-screen pb-28 relative overflow-hidden">
+      {/* Background Image */}
+      <div className="fixed inset-0 z-0 pointer-events-none">
+        <img 
+          src="https://images.unsplash.com/photo-1585747860715-2ba37e788b70?q=80&w=2074&auto=format&fit=crop" 
+          alt="Barbershop Background" 
+          className="w-full h-full object-cover opacity-[0.15] grayscale"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#131313]/40 via-[#131313]/80 to-[#131313]"></div>
+      </div>
+
+      <div className="relative z-10">
       {/* Header */}
       <header className="bg-zinc-950/80 backdrop-blur-md fixed top-0 w-full z-40 border-b border-zinc-900 px-5 pt-8 pb-4 flex justify-between items-center">
         <h1 className="text-2xl font-black text-white">Serviços</h1>
@@ -192,6 +205,7 @@ export default function ProfessionalServicesPage() {
           </div>
         )}
       </main>
+      </div>
 
       {/* FAB Add Button */}
       <button 
@@ -242,6 +256,22 @@ export default function ProfessionalServicesPage() {
                   />
                 </div>
 
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-bold text-zinc-400 uppercase">Categoria</label>
+                  <select 
+                    value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})}
+                    className="w-full h-12 px-4 bg-zinc-950 border border-zinc-800 rounded-xl text-white focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-all appearance-none"
+                  >
+                    <option value="Geral">Geral</option>
+                    <option value="Cabelo">Cabelo</option>
+                    <option value="Barba">Barba</option>
+                    <option value="Combo">Combo</option>
+                    <option value="Sobrancelha">Sobrancelha</option>
+                    <option value="Química">Química</option>
+                    <option value="Outros">Outros</option>
+                  </select>
+                </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div className="flex flex-col gap-1">
                     <label className="text-xs font-bold text-zinc-400 uppercase">Preço (R$)</label>
@@ -283,6 +313,7 @@ export default function ProfessionalServicesPage() {
       <nav className="bg-zinc-900/95 backdrop-blur-md fixed bottom-0 w-full rounded-t-2xl z-30 border-t border-zinc-800 shadow-[0_-4px_20px_rgba(0,0,0,0.4)] flex justify-around items-center h-20 px-4 pb-4">
         <NavItem href="/professional-dashboard" icon={<Grid />} label="Início" />
         <NavItem href="/professional-dashboard/agenda" icon={<Calendar />} label="Agenda" />
+        <NavItem href="/professional-dashboard/equipe" icon={<Users />} label="Equipe" />
         <NavItem active href="/professional-dashboard/servicos" icon={<Scissors />} label="Serviços" />
         <NavItem href="/professional-dashboard/perfil" icon={<UserIcon />} label="Perfil" />
       </nav>
