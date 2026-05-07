@@ -28,6 +28,8 @@ export default function ProfessionalDashboardPage() {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [subscription, setSubscription] = useState<any>(null);
+  const [permissionStatus, setPermissionStatus] = useState<string>('default');
   const router = useRouter();
 
   const fetchData = async () => {
@@ -105,6 +107,10 @@ export default function ProfessionalDashboardPage() {
 
   useEffect(() => {
     fetchData();
+
+    if ('Notification' in window) {
+      setPermissionStatus(Notification.permission);
+    }
 
     let channel: any;
     const setupRealtime = async () => {
