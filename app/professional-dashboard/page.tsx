@@ -95,25 +95,22 @@ export default function ProfessionalDashboardPage() {
           const registration = await navigator.serviceWorker.ready;
           const existingSub = await registration.pushManager.getSubscription();
           
-          if (!existingSub) {
-            const permission = await Notification.requestPermission();
-            if (permission === 'granted') {
-              const applicationServerKey = urlB64ToUint8Array(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!);
-              const newSub = await registration.pushManager.subscribe({
-                userVisibleOnly: true,
-                applicationServerKey
-              });
-              
-              const subJson = newSub.toJSON();
-              
-              // Save to DB
-              await supabase.from('push_subscriptions').insert({
-                user_id: user.id,
-                endpoint: subJson.endpoint,
-                p256dh: subJson.keys?.p256dh,
-                auth: subJson.keys?.auth
-              });
-            }
+          if (!existingSub && Notification.permission === 'granted') {
+            const applicationServerKey = urlB64ToUint8Array(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!);
+            const newSub = await registration.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey
+            });
+            
+            const subJson = newSub.toJSON();
+            
+            // Save to DB
+            await supabase.from('push_subscriptions').insert({
+              user_id: user.id,
+              endpoint: subJson.endpoint,
+              p256dh: subJson.keys?.p256dh,
+              auth: subJson.keys?.auth
+            });
           }
         } catch (e) {
           console.error('Push error:', e);
@@ -218,6 +215,21 @@ export default function ProfessionalDashboardPage() {
   };
 
   const hasUnread = notifications.some(n => !n.is_read);
+  const [permissionStatus, setPermissionStatus] = useState<string>('default');
+
+  useEffect(() => {
+    if ('Notification' in window) {
+      setPermissionStatus(Notification.permission);
+    }
+  }, []);
+
+  const handleRequestPermission = async () => {
+    const permission = await Notification.requestPermission();
+    setPermissionStatus(permission);
+    if (permission === 'granted') {
+      fetchData(); // Tenta inscrever agora que tem permissão
+    }
+  };
 
   return (
     <div className="bg-[#131313] text-[#e5e2e1] min-h-screen pb-28 relative overflow-hidden">
@@ -315,6 +327,31 @@ export default function ProfessionalDashboardPage() {
           <h1 className="text-3xl font-extrabold text-white">Painel</h1>
           <p className="text-[#c3c5d9]">Bem-vindo de volta, {profile ? profile.full_name?.split(' ')[0] : 'Barbeiro'}.</p>
         </section>
+
+        {/* Notificações Banner */}
+        {permissionStatus === 'default' && (
+          <motion.section 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-primary-container/20 border border-primary-container/30 p-4 rounded-2xl flex items-center justify-between gap-4"
+          >
+            <div className="flex items-center gap-3">
+              <div className="bg-primary-container p-2 rounded-xl text-white">
+                <Bell className="size-5" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-white">Ativar Notificações</h4>
+                <p className="text-xs text-zinc-400">Receba alertas de novos agendamentos.</p>
+              </div>
+            </div>
+            <button 
+              onClick={handleRequestPermission}
+              className="bg-primary-container text-white px-4 py-2 rounded-xl text-xs font-bold active:scale-95 transition-transform"
+            >
+              ATIVAR
+            </button>
+          </motion.section>
+        )}
 
         {/* Stats Grid */}
         <section className="grid grid-cols-2 gap-3">
