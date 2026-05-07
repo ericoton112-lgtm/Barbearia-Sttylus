@@ -88,36 +88,19 @@ export default function ProfessionalDashboardPage() {
 
       if (notifs) setNotifications(notifs);
 
-      // Push Notification Subscription
-      if ('serviceWorker' in navigator && 'PushManager' in window) {
-        try {
+      // Push Notification Subscription - Only check existing
+      try {
+        if ('serviceWorker' in navigator && 'PushManager' in window) {
           const registration = await navigator.serviceWorker.ready;
-          const existingSub = await registration.pushManager.getSubscription();
-          
-          if (!existingSub && Notification.permission === 'granted' && process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY) {
-            const applicationServerKey = urlB64ToUint8Array(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY);
-            const newSub = await registration.pushManager.subscribe({
-              userVisibleOnly: true,
-              applicationServerKey
-            });
-            
-            const subJson = newSub.toJSON();
-            
-            // Save to DB
-            await supabase.from('push_subscriptions').insert({
-              user_id: user.id,
-              endpoint: subJson.endpoint,
-              p256dh: subJson.keys?.p256dh,
-              auth: subJson.keys?.auth
-            });
-          }
-        } catch (e) {
-          console.error('Push error:', e);
+          const sub = await registration.pushManager.getSubscription();
+          setSubscription(sub);
         }
+      } catch (e) {
+        console.error('Push check failed', e);
       }
 
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   useEffect(() => {
