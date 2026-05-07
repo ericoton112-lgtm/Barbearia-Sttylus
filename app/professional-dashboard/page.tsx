@@ -3,11 +3,27 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { LogOut, Check } from 'lucide-react';
+import { LogOut, Check, Bell } from 'lucide-react';
+
+function urlB64ToUint8Array(base64String: string) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding)
+    .replace(/\-/g, '+')
+    .replace(/_/g, '/');
+
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
 
 export default function ProfessionalDashboardPage() {
   const [appointments, setAppointments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [permissionStatus, setPermissionStatus] = useState<string>('default');
   const router = useRouter();
 
   const fetchData = async () => {
@@ -42,6 +58,9 @@ export default function ProfessionalDashboardPage() {
 
   useEffect(() => {
     fetchData();
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      setPermissionStatus(Notification.permission);
+    }
   }, []);
 
   const handleLogout = async () => {
@@ -52,6 +71,45 @@ export default function ProfessionalDashboardPage() {
   const handleComplete = async (id: string) => {
     await supabase.from('appointments').update({ status: 'concluído' }).eq('id', id);
     fetchData();
+  };
+
+  const handleRequestPermission = async () => {
+    if (!('Notification' in window)) return;
+    
+    const permission = await Notification.requestPermission();
+    setPermissionStatus(permission);
+
+    if (permission === 'granted') {
+      try {
+        const registration = await navigator.serviceWorker.ready;
+        const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+        
+        if (!vapidPublicKey) {
+          console.error('VAPID key missing');
+          return;
+        }
+
+        const applicationServerKey = urlB64ToUint8Array(vapidPublicKey);
+        const sub = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey
+        });
+
+        const subJson = sub.toJSON();
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (user) {
+          await supabase.from('push_subscriptions').insert({
+            user_id: user.id,
+            endpoint: subJson.endpoint,
+            p256dh: subJson.keys?.p256dh,
+            auth: subJson.keys?.auth
+          });
+        }
+      } catch (e) {
+        console.error('Subscription failed:', e);
+      }
+    }
   };
 
   if (loading) {
@@ -72,6 +130,25 @@ export default function ProfessionalDashboardPage() {
       </header>
 
       <main className="space-y-6">
+        {/* Notificações Banner */}
+        {permissionStatus === 'default' && (
+          <section className="bg-blue-600/20 border border-blue-600/30 p-4 rounded-xl flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <Bell className="text-blue-500" />
+              <div>
+                <p className="text-sm font-bold">Ativar Notificações</p>
+                <p className="text-[10px] text-zinc-400">Receba alertas de novos clientes.</p>
+              </div>
+            </div>
+            <button 
+              onClick={handleRequestPermission}
+              className="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold"
+            >
+              ATIVAR
+            </button>
+          </section>
+        )}
+
         <h2 className="text-lg font-semibold border-b border-zinc-800 pb-2">Agendamentos de Hoje</h2>
         
         {appointments.length === 0 ? (
