@@ -34,17 +34,6 @@ export default function ProfessionalDashboardPage() {
       return;
     }
 
-    // Check existing subscription
-    try {
-      if ('serviceWorker' in navigator) {
-        const registration = await navigator.serviceWorker.ready;
-        const sub = await registration.pushManager.getSubscription();
-        setIsSubscribed(!!sub);
-      }
-    } catch (e) {
-      console.error('Error checking sub', e);
-    }
-
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
     const todayEnd = new Date();
@@ -66,6 +55,15 @@ export default function ProfessionalDashboardPage() {
 
     if (appts) setAppointments(appts);
     setLoading(false);
+
+    // Check subscription in background to avoid blocking
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.ready.then(reg => {
+        reg.pushManager.getSubscription().then(sub => {
+          setIsSubscribed(!!sub);
+        });
+      });
+    }
   };
 
   useEffect(() => {
@@ -111,7 +109,6 @@ export default function ProfessionalDashboardPage() {
         const { data: { user } } = await supabase.auth.getUser();
         
         if (user) {
-          // Check if already in DB
           const { data: existing } = await supabase
             .from('push_subscriptions')
             .select('*')
