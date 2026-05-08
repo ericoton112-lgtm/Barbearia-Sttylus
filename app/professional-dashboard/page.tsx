@@ -29,41 +29,43 @@ export default function ProfessionalDashboardPage() {
   const router = useRouter();
 
   const fetchData = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      router.replace('/login');
-      return;
-    }
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        window.location.href = '/login';
+        return;
+      }
 
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-    const todayEnd = new Date();
-    todayEnd.setHours(23, 59, 59, 999);
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      const todayEnd = new Date();
+      todayEnd.setHours(23, 59, 59, 999);
 
-    const { data: appts } = await supabase
-      .from('appointments')
-      .select(`
-        id,
-        appointment_date,
-        status,
-        client:profiles!client_id (full_name),
-        service:services!service_id (name, price)
-      `)
-      .eq('barber_id', user.id)
-      .gte('appointment_date', todayStart.toISOString())
-      .lte('appointment_date', todayEnd.toISOString())
-      .order('appointment_date', { ascending: true });
+      const { data: appts } = await supabase
+        .from('appointments')
+        .select(`
+          id,
+          appointment_date,
+          status,
+          client:profiles!client_id (full_name),
+          service:services!service_id (name, price)
+        `)
+        .eq('barber_id', user.id)
+        .gte('appointment_date', todayStart.toISOString())
+        .lte('appointment_date', todayEnd.toISOString())
+        .order('appointment_date', { ascending: true });
 
-    if (appts) setAppointments(appts);
-    setLoading(false);
+      if (appts) setAppointments(appts);
+      setLoading(false);
 
-    // Check subscription in background
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.ready.then(reg => {
-        reg.pushManager.getSubscription().then(sub => {
-          setIsSubscribed(!!sub);
-        }).catch(() => setIsSubscribed(false));
-      }).catch(() => setIsSubscribed(false));
+      if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+        const reg = await navigator.serviceWorker.ready;
+        const sub = await reg.pushManager.getSubscription();
+        setIsSubscribed(!!sub);
+      }
+    } catch (err) {
+      console.error(err);
+      setLoading(false);
     }
   };
 
@@ -79,13 +81,14 @@ export default function ProfessionalDashboardPage() {
     window.location.href = '/login';
   };
 
-  const handleComplete = async (id: string) => {
-    await supabase.from('appointments').update({ status: 'concluído' }).eq('id', id);
-    fetchData();
-  };
-
   const handleRequestPermission = async () => {
-    if (!('Notification' in window)) return;
+    // TESTE DE CLIQUE
+    alert('Botão apertado! Tentando conectar...');
+    
+    if (!('Notification' in window)) {
+      alert('Seu navegador não suporta notificações.');
+      return;
+    }
     
     setSyncing(true);
     try {
@@ -96,7 +99,10 @@ export default function ProfessionalDashboardPage() {
         const registration = await navigator.serviceWorker.ready;
         const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
         
-        if (!vapidPublicKey) throw new Error('VAPID key missing');
+        if (!vapidPublicKey) {
+          alert('Erro: Chave VAPID não encontrada.');
+          return;
+        }
 
         const applicationServerKey = urlB64ToUint8Array(vapidPublicKey);
         const sub = await registration.pushManager.subscribe({
@@ -116,10 +122,12 @@ export default function ProfessionalDashboardPage() {
           }, { onConflict: 'endpoint' });
         }
         setIsSubscribed(true);
+        alert('Sincronizado com sucesso!');
+      } else {
+        alert('Permissão negada pelo navegador.');
       }
-    } catch (e) {
-      console.error('Subscription failed:', e);
-      alert('Erro ao conectar: ' + (e instanceof Error ? e.message : 'Verifique sua conexão'));
+    } catch (e: any) {
+      alert('Erro na conexão: ' + e.message);
     } finally {
       setSyncing(false);
     }
@@ -145,38 +153,21 @@ export default function ProfessionalDashboardPage() {
       <main className="space-y-6">
         {/* Notificações Banner */}
         {(!isSubscribed || permissionStatus === 'default') && permissionStatus !== 'denied' && (
-          <section className="bg-blue-600/20 border border-blue-600/30 p-4 rounded-xl flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <Bell className="text-blue-500" />
+          <section className="bg-blue-600/20 border border-blue-600/30 p-6 rounded-2xl">
+            <div className="flex items-center gap-3 mb-4">
+              <Bell className="text-blue-500" size={28} />
               <div>
-                <p className="text-sm font-bold">
-                  {permissionStatus === 'granted' ? 'Sincronizar Notificações' : 'Ativar Notificações'}
-                </p>
-                <p className="text-[10px] text-zinc-400">
-                  {permissionStatus === 'granted' ? 'Clique para finalizar a conexão.' : 'Receba alertas de novos clientes.'}
-                </p>
+                <p className="text-lg font-bold">Conectar Notificações</p>
+                <p className="text-xs text-zinc-400">Clique no botão abaixo para receber avisos.</p>
               </div>
             </div>
             <button 
-              disabled={syncing}
               onClick={handleRequestPermission}
-              className="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold disabled:opacity-50 flex items-center gap-2"
+              className="w-full bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-3 shadow-lg active:scale-95 transition-all"
             >
-              {syncing && <Loader2 size={12} className="animate-spin" />}
-              {permissionStatus === 'granted' ? 'CONECTAR' : 'ATIVAR'}
+              {syncing ? <Loader2 className="animate-spin" /> : <Bell size={20} />}
+              {syncing ? 'CONECTANDO...' : 'CONECTAR AGORA'}
             </button>
-          </section>
-        )}
-
-        {permissionStatus === 'denied' && (
-          <section className="bg-red-600/20 border border-red-600/30 p-4 rounded-xl">
-            <div className="flex items-center gap-3">
-              <Bell className="text-red-500" />
-              <div>
-                <p className="text-sm font-bold text-red-500">Notificações Bloqueadas</p>
-                <p className="text-[10px] text-zinc-400">Por favor, libere as notificações nas configurações do seu navegador para receber alertas.</p>
-              </div>
-            </div>
           </section>
         )}
 
@@ -187,33 +178,35 @@ export default function ProfessionalDashboardPage() {
           </section>
         )}
 
-        <h2 className="text-lg font-semibold border-b border-zinc-800 pb-2">Agendamentos de Hoje</h2>
+        <h2 className="text-lg font-semibold border-b border-zinc-800 pb-2 uppercase tracking-tighter">Agenda de Hoje</h2>
         
         {appointments.length === 0 ? (
-          <p className="text-zinc-500 text-center py-10">Nenhum agendamento para hoje.</p>
+          <p className="text-zinc-500 text-center py-10 italic">Nenhum agendamento encontrado.</p>
         ) : (
-          appointments.map(appt => (
-            <div key={appt.id} className="bg-zinc-900 p-4 rounded-xl border border-zinc-800 flex justify-between items-center">
-              <div>
-                <p className="text-sm font-bold text-blue-500">
-                  {new Date(appt.appointment_date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                </p>
-                <p className="font-bold">{appt.client?.full_name}</p>
-                <p className="text-xs text-zinc-400">{appt.service?.name}</p>
+          <div className="space-y-4">
+            {appointments.map(appt => (
+              <div key={appt.id} className="bg-zinc-900 p-4 rounded-xl border border-zinc-800 flex justify-between items-center">
+                <div>
+                  <p className="text-sm font-bold text-blue-500">
+                    {new Date(appt.appointment_date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                  <p className="font-bold">{appt.client?.full_name}</p>
+                  <p className="text-xs text-zinc-400">{appt.service?.name}</p>
+                </div>
+                
+                {appt.status !== 'concluído' && (
+                  <button 
+                    onClick={() => {
+                      supabase.from('appointments').update({ status: 'concluído' }).eq('id', appt.id).then(() => fetchData());
+                    }}
+                    className="bg-blue-600 p-3 rounded-xl"
+                  >
+                    <Check size={20} />
+                  </button>
+                )}
               </div>
-              
-              {appt.status !== 'concluído' ? (
-                <button 
-                  onClick={() => handleComplete(appt.id)}
-                  className="bg-blue-600 p-2 rounded-lg"
-                >
-                  <Check size={20} />
-                </button>
-              ) : (
-                <span className="text-green-500 text-xs font-bold">OK</span>
-              )}
-            </div>
-          ))
+            ))}
+          </div>
         )}
       </main>
     </div>
