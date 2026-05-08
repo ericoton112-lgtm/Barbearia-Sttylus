@@ -67,7 +67,7 @@ export default function ProfessionalDashboardPage() {
 
       const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
 
-      // 1. Fetch Today's Appointments
+      // 1. Fetch Today's Appointments (for the list)
       const { data: appts } = await supabase
         .from('appointments')
         .select(`
@@ -87,17 +87,31 @@ export default function ProfessionalDashboardPage() {
         setAppointments(appts);
         setTotalAppointments(appts.length);
         
-        // Calculate daily earnings
         const earnings = appts
           .filter(a => a.status === 'concluído')
           .reduce((acc, a) => acc + (Number(a.service?.price) || 0), 0);
         setTotalEarnings(earnings);
-
-        // Find next client
-        const now = new Date();
-        const next = appts.find(a => new Date(a.appointment_date) > now && a.status === 'confirmado');
-        setNextClient(next || null);
       }
+
+      // 2. Fetch THE Next Client (even if tomorrow)
+      const now = new Date();
+      const { data: nextAppt } = await supabase
+        .from('appointments')
+        .select(`
+          id,
+          appointment_date,
+          status,
+          client:profiles!client_id (full_name, avatar_url),
+          service:services!service_id (name, price, duration_minutes)
+        `)
+        .eq('barber_id', user.id)
+        .gt('appointment_date', now.toISOString())
+        .eq('status', 'confirmado')
+        .order('appointment_date', { ascending: true })
+        .limit(1)
+        .single();
+
+      setNextClient(nextAppt || null);
 
       // 2. Fetch Monthly Stats
       const { data: monthData } = await supabase
@@ -272,7 +286,12 @@ export default function ProfessionalDashboardPage() {
                      <Timer size={14} />
                      <span className="text-[10px] font-black uppercase tracking-widest">Em Instantes</span>
                    </div>
-                   <span className="text-xs font-black">{formatTime(nextClient.appointment_date)}</span>
+                   <span className="text-xs font-black">
+                     {new Date(nextClient.appointment_date).toDateString() === new Date().toDateString() 
+                       ? formatTime(nextClient.appointment_date) 
+                       : new Date(nextClient.appointment_date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) + ' às ' + formatTime(nextClient.appointment_date)
+                     }
+                   </span>
                 </div>
                 <div className="p-6">
                   <div className="flex items-center gap-4 mb-6">
