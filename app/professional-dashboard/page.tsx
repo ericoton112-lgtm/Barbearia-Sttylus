@@ -149,6 +149,18 @@ export default function ProfessionalDashboardPage() {
           </section>
         )}
 
+        {permissionStatus === 'denied' && (
+          <section className="bg-red-600/20 border border-red-600/30 p-4 rounded-xl">
+            <div className="flex items-center gap-3">
+              <Bell className="text-red-500" />
+              <div>
+                <p className="text-sm font-bold text-red-500">Notificações Bloqueadas</p>
+                <p className="text-[10px] text-zinc-400">Por favor, libere as notificações nas configurações do seu navegador para receber alertas.</p>
+              </div>
+            </div>
+          </section>
+        )}
+
         <h2 className="text-lg font-semibold border-b border-zinc-800 pb-2">Agendamentos de Hoje</h2>
         
         {appointments.length === 0 ? (
