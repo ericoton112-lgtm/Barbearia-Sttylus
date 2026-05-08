@@ -82,7 +82,6 @@ export default function ProfessionalDashboardPage() {
   };
 
   const handleRequestPermission = async () => {
-    // TESTE DE CLIQUE
     alert('Botão apertado! Tentando conectar...');
     
     if (!('Notification' in window)) {
@@ -97,13 +96,10 @@ export default function ProfessionalDashboardPage() {
 
       if (permission === 'granted') {
         const registration = await navigator.serviceWorker.ready;
-        const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
         
-        if (!vapidPublicKey) {
-          alert('Erro: Chave VAPID não encontrada.');
-          return;
-        }
-
+        // Use environment variable OR fallback to the actual key
+        const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || "BFVMa0nULV7_Yu2LcL0Di5eyXdtnMzCZml-QWX7kHzHa8Pw_EmtPhE0v432Enkd_KJSWnZkcl1ThKO1Js_wIxH8";
+        
         const applicationServerKey = urlB64ToUint8Array(vapidPublicKey);
         const sub = await registration.pushManager.subscribe({
           userVisibleOnly: true,
