@@ -13,6 +13,13 @@ export default function ClientHomePage() {
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string>('Todos');
   const router = useRouter();
+  
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 12) return 'Bom dia';
+    if (hour >= 12 && hour < 18) return 'Boa tarde';
+    return 'Boa noite';
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -77,7 +84,7 @@ export default function ClientHomePage() {
     <>
       <header className="px-5 pt-12 pb-6 flex justify-between items-center bg-zinc-950/60 backdrop-blur-xl sticky top-0 z-40 border-b border-zinc-900">
         <div>
-          <p className="text-zinc-500 font-bold uppercase tracking-widest text-[10px]">Bom dia,</p>
+          <p className="text-zinc-500 font-bold uppercase tracking-widest text-[10px]">{getGreeting()},</p>
           <h1 className="text-xl font-black italic uppercase tracking-tighter text-white">{profile ? profile.full_name : 'Visitante'}</h1>
         </div>
         <div className="flex items-center gap-3">
