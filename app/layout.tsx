@@ -36,6 +36,7 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
                   navigator.serviceWorker.register('/sw.js').then(
                     function(registration) {
                       console.log('ServiceWorker registration successful');
+                      registration.update(); // Forçar atualização
                     },
                     function(err) {
                       console.log('ServiceWorker registration failed: ', err);
