@@ -95,7 +95,7 @@ export default function ClientProfilePage() {
   };
 
   return (
-    <div className="bg-[#131313] text-[#e5e2e1] min-h-screen pb-28">
+    <>
       {/* Header */}
       <header className="bg-zinc-950/80 backdrop-blur-md fixed top-0 w-full z-40 border-b border-zinc-900 px-5 pt-8 pb-4 flex justify-between items-center">
         <h1 className="text-2xl font-black text-white">Meu Perfil</h1>
@@ -180,22 +180,6 @@ export default function ClientProfilePage() {
         )}
       </main>
 
-      {/* Bottom Nav */}
-      <nav className="bg-zinc-900/95 backdrop-blur-md fixed bottom-0 w-full rounded-t-2xl z-30 border-t border-zinc-800 shadow-[0_-4px_20px_rgba(0,0,0,0.4)] flex justify-around items-center h-20 px-4 pb-4">
-        <NavItem href="/client-home" icon={<Grid />} label="Início" />
-        <NavItem href="/client-home/agendar" icon={<Calendar />} label="Agendar" />
-        <NavItem href="/client-home/agendamentos" icon={<Clock />} label="Histórico" />
-        <NavItem active href="/client-home/perfil" icon={<UserIcon />} label="Perfil" />
-      </nav>
-    </div>
-  );
-}
-
-function NavItem({ active, icon, label, href }: { active?: boolean, icon: React.ReactNode, label: string, href: string }) {
-  return (
-    <Link href={href} className={`flex flex-col items-center justify-center transition-all duration-200 active:scale-90 ${active ? 'text-primary-container drop-shadow-[0_0_8px_rgba(0,87,255,0.4)]' : 'text-zinc-500'}`}>
-      <span className="size-6">{icon}</span>
-      <span className="text-[10px] font-semibold uppercase tracking-widest mt-1">{label}</span>
-    </Link>
+    </>
   );
 }

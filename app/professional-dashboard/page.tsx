@@ -43,10 +43,14 @@ export default function ProfessionalDashboardPage() {
   const [permissionStatus, setPermissionStatus] = useState<string>('default');
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isAccepting, setIsAccepting] = useState(true);
+  const [barberName, setBarberName] = useState('');
   
   // Stats
+  const [statsFilter, setStatsFilter] = useState<'semana' | 'mes'>('mes');
   const [totalEarnings, setTotalEarnings] = useState(0);
   const [totalAppointments, setTotalAppointments] = useState(0);
+  const [weeklyEarnings, setWeeklyEarnings] = useState(0);
+  const [weeklyCompleted, setWeeklyCompleted] = useState(0);
   const [monthlyEarnings, setMonthlyEarnings] = useState(0);
   const [monthlyCompleted, setMonthlyCompleted] = useState(0);
   const [nextClient, setNextClient] = useState<any>(null);
@@ -61,9 +65,12 @@ export default function ProfessionalDashboardPage() {
         return;
       }
 
-      // Fetch Profile for is_accepting status
-      const { data: prof } = await supabase.from('profiles').select('is_accepting_appointments').eq('id', user.id).single();
-      if (prof) setIsAccepting(prof.is_accepting_appointments);
+      // Fetch Profile for is_accepting status and name
+      const { data: prof } = await supabase.from('profiles').select('full_name, is_accepting_appointments').eq('id', user.id).single();
+      if (prof) {
+        setIsAccepting(prof.is_accepting_appointments);
+        setBarberName(prof.full_name?.split(' ')[0] || ''); // Pega apenas o primeiro nome
+      }
 
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -118,7 +125,7 @@ export default function ProfessionalDashboardPage() {
 
       setNextClient(nextAppt || null);
 
-      // 2. Fetch Monthly Stats
+      // 3. Fetch Monthly Stats
       const { data: monthData } = await supabase
         .from('appointments')
         .select(`status, service:services!service_id (price)`)
@@ -130,6 +137,26 @@ export default function ProfessionalDashboardPage() {
         const mEarnings = monthData.reduce((acc, a) => acc + (Number(a.service?.price) || 0), 0);
         setMonthlyEarnings(mEarnings);
         setMonthlyCompleted(monthData.length);
+      }
+
+      // 4. Fetch Weekly Stats
+      const weekStart = new Date(today);
+      const day = weekStart.getDay();
+      const diff = weekStart.getDate() - day + (day === 0 ? -6 : 1); // Adjust for Monday start
+      weekStart.setDate(diff);
+      weekStart.setHours(0,0,0,0);
+
+      const { data: weekData } = await supabase
+        .from('appointments')
+        .select(`status, service:services!service_id (price)`)
+        .eq('barber_id', user.id)
+        .gte('appointment_date', weekStart.toISOString())
+        .eq('status', 'concluído');
+
+      if (weekData) {
+        const wEarnings = weekData.reduce((acc, a) => acc + (Number(a.service?.price) || 0), 0);
+        setWeeklyEarnings(wEarnings);
+        setWeeklyCompleted(weekData.length);
       }
 
       setLoading(false);
@@ -224,24 +251,43 @@ export default function ProfessionalDashboardPage() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white pb-28 relative overflow-hidden">
+      {/* Imagem de Fundo Cinematográfica */}
+      <div className="fixed inset-0 z-0">
+        <img 
+          src="https://images.unsplash.com/photo-1503951914875-452162b0f3f1?q=80&w=2070&auto=format&fit=crop" 
+          alt="Background" 
+          className="w-full h-full object-cover opacity-10 grayscale"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a0a]/80 via-[#0a0a0a]/95 to-[#0a0a0a]"></div>
+      </div>
+
       {/* Background Glow */}
-      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-blue-600/10 rounded-full blur-[120px] pointer-events-none"></div>
+      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-blue-600/10 rounded-full blur-[150px] pointer-events-none z-0"></div>
 
       <div className="relative z-10">
         <header className="px-6 pt-12 pb-6 flex justify-between items-center bg-zinc-950/60 backdrop-blur-xl sticky top-0 z-40 border-b border-zinc-900">
           <div>
-            <p className="text-zinc-500 font-bold uppercase tracking-widest text-[10px]">Profissional,</p>
+            <p className="text-zinc-500 font-bold uppercase tracking-widest text-[10px]">Olá, {barberName},</p>
             <h1 className="text-xl font-black italic uppercase tracking-tighter text-white">Barbearia Styllus</h1>
           </div>
           <div className="flex items-center gap-3">
-             {/* Toggle Abrir/Fechar */}
-             <button 
-                onClick={handleToggleOpen}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all active:scale-95 ${isAccepting ? 'bg-green-500/10 border-green-500/30 text-green-500' : 'bg-red-500/10 border-red-500/30 text-red-500'}`}
-             >
-               <div className={`w-2 h-2 rounded-full ${isAccepting ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
-               <span className="text-[10px] font-black uppercase tracking-widest">{isAccepting ? 'Aberto' : 'Fechado'}</span>
-             </button>
+             {/* Toggle Status Pílula */}
+             <div className="flex bg-zinc-900/80 p-1 rounded-xl border border-zinc-800 items-center">
+               <button 
+                 onClick={() => !isAccepting && handleToggleOpen()}
+                 className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all duration-300 ${isAccepting ? 'bg-green-600 text-white shadow-lg shadow-green-900/20' : 'text-zinc-600 hover:text-zinc-400'}`}
+               >
+                 <div className={`w-1.5 h-1.5 rounded-full ${isAccepting ? 'bg-white animate-pulse' : 'bg-zinc-700'}`}></div>
+                 <span className="text-[9px] font-black uppercase tracking-widest">ON</span>
+               </button>
+               <button 
+                 onClick={() => isAccepting && handleToggleOpen()}
+                 className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all duration-300 ${!isAccepting ? 'bg-red-600 text-white shadow-lg shadow-red-900/20' : 'text-zinc-600 hover:text-zinc-400'}`}
+               >
+                 <div className={`w-1.5 h-1.5 rounded-full ${!isAccepting ? 'bg-white' : 'bg-zinc-700'}`}></div>
+                 <span className="text-[9px] font-black uppercase tracking-widest">OFF</span>
+               </button>
+             </div>
 
              <button 
                 onClick={handleRequestPermission}
@@ -280,21 +326,48 @@ export default function ProfessionalDashboardPage() {
             </div>
           )}
 
-          {/* Quick Stats Summary */}
           <section className="grid grid-cols-2 gap-4">
             <div className="bg-zinc-900/80 backdrop-blur-md p-5 rounded-2xl border border-zinc-800 flex flex-col justify-between h-36">
               <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Faturamento Hoje</span>
               <div className="flex flex-col">
                 <span className="text-2xl font-black text-blue-500">R$ {totalEarnings.toFixed(2).replace('.', ',')}</span>
-                <span className="text-[10px] text-green-500 font-bold">Hoje • {totalAppointments} clientes</span>
+                <span className="text-[10px] text-green-500 font-bold">Hoje • {appointments.filter(a => a.status === 'concluído').length} cortes</span>
               </div>
             </div>
-            <div className="bg-zinc-900/80 backdrop-blur-md p-5 rounded-2xl border border-zinc-800 flex flex-col justify-between h-36">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Mês Atual</span>
-              <div className="flex flex-col">
-                <span className="text-2xl font-black text-white">R$ {monthlyEarnings.toFixed(2).replace('.', ',')}</span>
-                <span className="text-[10px] text-zinc-500 font-bold">{monthlyCompleted} cortes realizados</span>
+            <div className="bg-zinc-900/80 backdrop-blur-md p-5 rounded-2xl border border-zinc-800 flex flex-col justify-between h-36 relative overflow-hidden group">
+              <div className="flex justify-between items-start">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">
+                  {statsFilter === 'semana' ? 'Esta Semana' : 'Mês Atual'}
+                </span>
+                
+                {/* Filtro Semana/Mês */}
+                <div className="flex bg-black/40 p-0.5 rounded-lg border border-white/5">
+                   <button 
+                    onClick={() => setStatsFilter('semana')}
+                    className={`px-2 py-1 text-[8px] font-black uppercase rounded-md transition-all ${statsFilter === 'semana' ? 'bg-blue-600 text-white shadow-lg' : 'text-zinc-500'}`}
+                   >
+                    Sem
+                   </button>
+                   <button 
+                    onClick={() => setStatsFilter('mes')}
+                    className={`px-2 py-1 text-[8px] font-black uppercase rounded-md transition-all ${statsFilter === 'mes' ? 'bg-blue-600 text-white shadow-lg' : 'text-zinc-500'}`}
+                   >
+                    Mês
+                   </button>
+                </div>
               </div>
+
+              <div className="flex flex-col animate-in fade-in slide-in-from-bottom-2 duration-500" key={statsFilter}>
+                <span className="text-2xl font-black text-white">
+                  R$ {(statsFilter === 'semana' ? weeklyEarnings : monthlyEarnings).toFixed(2).replace('.', ',')}
+                </span>
+                <span className="text-[10px] text-zinc-500 font-bold">
+                  {(statsFilter === 'semana' ? weeklyCompleted : monthlyCompleted)} cortes realizados
+                </span>
+              </div>
+              
+              {/* Efeito Visual de fundo do Card */}
+              <TrendingUp size={60} className="absolute -bottom-4 -right-4 text-white/5 -rotate-12 group-hover:scale-110 transition-transform" />
             </div>
           </section>
 

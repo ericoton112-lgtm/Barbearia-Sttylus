@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Grid, Calendar, User as UserIcon, Scissors, ChevronLeft, CheckCircle, Clock, Clock4 } from 'lucide-react';
+import { Grid, Calendar, User as UserIcon, Scissors, ChevronLeft, CheckCircle, Clock, Clock4, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
@@ -39,80 +39,86 @@ export default function AgendarPage() {
 
   useEffect(() => {
     const fetchData = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        router.replace('/login');
-        return;
-      }
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          router.replace('/login');
+          return;
+        }
 
-      const { data: profileData } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-      if (profileData) setProfile(profileData);
+        const { data: profileData } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+        if (profileData) setProfile(profileData);
 
-      // Buscar serviços primeiro para pré-selecionar se houver na URL
-      const { data: sData } = await supabase.from('services').select('*').order('name', { ascending: true });
-      let initialService = null;
-      if (sData) {
-        setServices(sData);
-        // Tentar pegar serviceId da URL
-        if (typeof window !== 'undefined') {
-          const params = new URLSearchParams(window.location.search);
-          const sId = params.get('serviceId');
-          if (sId) {
-            initialService = sData.find((s: any) => s.id === sId);
-            if (initialService) {
-              setSelectedService(initialService);
+        // Buscar serviços primeiro para pré-selecionar se houver na URL
+        const { data: sData } = await supabase.from('services').select('*').order('name', { ascending: true });
+        let initialService = null;
+        if (sData) {
+          setServices(sData);
+          // Tentar pegar serviceId da URL
+          if (typeof window !== 'undefined') {
+            const params = new URLSearchParams(window.location.search);
+            const sId = params.get('serviceId');
+            if (sId) {
+              initialService = sData.find((s: any) => s.id === sId);
+              if (initialService) {
+                setSelectedService(initialService);
+              }
             }
           }
         }
-      }
 
-      const { data: bData } = await supabase.from('profiles').select('*').eq('role', 'barber');
-      let initialBarber = null;
-      if (bData) {
-        const openBarbers = bData.filter((b: any) => b.is_accepting_appointments);
-        setBarbers(openBarbers);
-        
-        if (typeof window !== 'undefined') {
-          const params = new URLSearchParams(window.location.search);
-          const bId = params.get('barberId');
-          if (bId) {
-            initialBarber = openBarbers.find((b: any) => b.id === bId);
-            if (initialBarber) setSelectedBarber(initialBarber);
+        const { data: bData } = await supabase.from('profiles').select('*').in('role', ['barber', 'admin']);
+        let initialBarber = null;
+        let openBarbersList: any[] = [];
+
+        if (bData) {
+          openBarbersList = bData.filter((b: any) => b.is_accepting_appointments);
+          setBarbers(openBarbersList);
+          
+          if (typeof window !== 'undefined') {
+            const params = new URLSearchParams(window.location.search);
+            const bId = params.get('barberId');
+            if (bId) {
+              initialBarber = openBarbersList.find((b: any) => b.id === bId);
+              if (initialBarber) setSelectedBarber(initialBarber);
+            }
+          }
+
+          // Auto select se só tiver 1 barbeiro aberto
+          if (openBarbersList.length === 1 && !initialBarber) {
+            setSelectedBarber(openBarbersList[0]);
+            initialBarber = openBarbersList[0];
           }
         }
 
-        // Auto select se só tiver 1 barbeiro aberto
-        if (openBarbers.length === 1 && !initialBarber) {
-          setSelectedBarber(openBarbers[0]);
-          initialBarber = openBarbers[0];
-        }
-      }
-
-      // Set available dates based on barber's work_days
-      if (initialBarber || openBarbers.length === 1) {
-        const barber = initialBarber || openBarbers[0];
-        const workDays = barber.work_days || [1,2,3,4,5,6];
-        const dts = [];
-        let curD = new Date();
-        while(dts.length < 7) {
-          if (workDays.includes(curD.getDay())) {
-            dts.push(new Date(curD));
+        // Set available dates based on barber's work_days
+        if (initialBarber || openBarbersList.length === 1) {
+          const barber = initialBarber || openBarbersList[0];
+          const workDays = barber.work_days || [1,2,3,4,5,6];
+          const dts = [];
+          let curD = new Date();
+          while(dts.length < 7) {
+            if (workDays.includes(curD.getDay())) {
+              dts.push(new Date(curD));
+            }
+            curD.setDate(curD.getDate() + 1);
           }
-          curD.setDate(curD.getDate() + 1);
+          setAvailableDates(dts);
         }
-        setAvailableDates(dts);
-      }
 
-      // Definir Step inicial baseado no que veio da URL
-      if (initialBarber && initialService) {
-        setStep(3);
-      } else if (initialService) {
-        setStep(1); // Force selection of barber if service was passed but not barber
-      } else if (initialBarber) {
-        setStep(2); // Barber passed, now select service
+        // Definir Step inicial baseado no que veio da URL
+        if (initialBarber && initialService) {
+          setStep(3);
+        } else if (initialService) {
+          setStep(1); // Force selection of barber if service was passed but not barber
+        } else if (initialBarber) {
+          setStep(2); // Barber passed, now select service
+        }
+      } catch (err) {
+        console.error('Erro ao carregar dados:', err);
+      } finally {
+        setLoading(false);
       }
-
-      setLoading(false);
     };
     fetchData();
   }, []);
@@ -268,14 +274,14 @@ export default function AgendarPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#131313] flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-primary-container border-t-transparent rounded-full animate-spin"></div>
+      <div className="flex items-center justify-center py-20">
+        <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
 
   return (
-    <div className="bg-[#131313] text-[#e5e2e1] min-h-screen pb-28 relative flex flex-col">
+    <div className="relative flex flex-col">
       {/* Header Modal-like */}
       {step < 4 && (
         <header className="bg-zinc-950/80 backdrop-blur-md sticky top-0 w-full z-40 border-b border-zinc-900 px-5 pt-8 pb-4 flex items-center gap-4">
@@ -353,11 +359,32 @@ export default function AgendarPage() {
           )}
 
           {step === 3 && (
-            <motion.div key="step3" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-8">
-              {/* Seletor de Data */}
+            <motion.div key="step3" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-8 pb-10">
+              
+              {/* Resumo Seleção */}
+              <div className="bg-blue-600/10 border border-blue-500/20 rounded-2xl p-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-900/40">
+                    <Scissors size={20} />
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-blue-400 font-black uppercase tracking-widest">Serviço Selecionado</p>
+                    <h4 className="text-white font-bold text-sm">{selectedService?.name}</h4>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-white font-black">R$ {Number(selectedService?.price).toFixed(2).replace('.', ',')}</p>
+                  <p className="text-zinc-500 text-[10px]">{selectedService?.duration_minutes} min</p>
+                </div>
+              </div>
+
+              {/* Seletor de Data Premium */}
               <div>
-                <h3 className="font-bold text-white mb-3">Escolha o dia</h3>
-                <div className="flex overflow-x-auto gap-3 pb-2 no-scrollbar">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xs font-black uppercase tracking-[0.2em] text-zinc-500">Selecione o Dia</h3>
+                  <span className="text-[10px] text-blue-500 font-bold px-2 py-1 bg-blue-500/10 rounded-lg">Próximos 7 dias</span>
+                </div>
+                <div className="flex overflow-x-auto gap-4 pb-4 no-scrollbar -mx-5 px-5 snap-x">
                   {availableDates.map((d, i) => {
                     const isSelected = selectedDate?.toDateString() === d.toDateString();
                     return (
@@ -365,59 +392,97 @@ export default function AgendarPage() {
                         key={i} 
                         onClick={() => {
                           setSelectedDate(d);
-                          setSelectedTime(''); // Limpa o horário ao trocar de data
+                          setSelectedTime(''); 
                         }}
-                        className={`shrink-0 w-16 h-20 rounded-2xl flex flex-col items-center justify-center border transition-all active:scale-95 ${isSelected ? 'bg-primary-container border-primary-container text-white shadow-[0_0_15px_rgba(0,87,255,0.4)]' : 'bg-zinc-900 border-zinc-800 text-zinc-400'}`}
+                        className={`shrink-0 w-20 h-24 snap-center rounded-[24px] flex flex-col items-center justify-center border-2 transition-all duration-300 active:scale-90 ${isSelected ? 'bg-blue-600 border-blue-400 text-white shadow-[0_15px_30px_rgba(0,87,255,0.3)] -translate-y-1' : 'bg-zinc-900/50 border-zinc-800/50 text-zinc-500 hover:border-zinc-700'}`}
                       >
-                        <span className="text-xs uppercase font-bold">{d.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '')}</span>
-                        <span className="text-xl font-black">{d.getDate()}</span>
+                        <span className={`text-[10px] uppercase font-black tracking-widest mb-1 ${isSelected ? 'text-blue-100' : 'text-zinc-600'}`}>{d.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '')}</span>
+                        <span className="text-2xl font-black">{d.getDate()}</span>
                       </button>
                     )
                   })}
                 </div>
               </div>
 
-              {/* Seletor de Hora */}
+              {/* Seletor de Hora Premium */}
               {selectedDate && (
-                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-                  <h3 className="font-bold text-white mb-3 flex items-center gap-2"><Clock className="size-4 text-primary-container" /> Escolha o horário</h3>
-                  <div className="grid grid-cols-3 gap-3">
-                    {availableTimes.length === 0 ? (
-                      <p className="col-span-3 text-zinc-500 text-sm">Nenhum horário disponível para hoje.</p>
-                    ) : (
-                      availableTimes.map(slot => {
-                        // Check if it conflicts with booked intervals
-                        const isBooked = bookedIntervals.some(b => (slot.start < b.end && slot.end > b.start));
-                        
-                        return (
-                          <button
-                            key={slot.time}
-                            disabled={isBooked}
-                            onClick={() => setSelectedTime(slot.time)}
-                            className={`py-3 rounded-xl border font-bold text-sm transition-all ${isBooked ? 'bg-zinc-900/50 border-zinc-800 text-zinc-600 opacity-50 cursor-not-allowed' : selectedTime === slot.time ? 'bg-primary-container border-primary-container text-white shadow-[0_0_15px_rgba(0,87,255,0.4)] active:scale-95' : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-700 active:scale-95'}`}
-                          >
-                            {slot.time}
-                          </button>
-                        )
-                      })
-                    )}
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xs font-black uppercase tracking-[0.2em] text-zinc-500">Horários Disponíveis</h3>
+                    <div className="flex gap-2">
+                       <div className="flex items-center gap-1">
+                          <div className="w-2 h-2 rounded-full bg-blue-600"></div>
+                          <span className="text-[8px] text-zinc-500 uppercase font-bold">Livre</span>
+                       </div>
+                       <div className="flex items-center gap-1">
+                          <div className="w-2 h-2 rounded-full bg-zinc-800"></div>
+                          <span className="text-[8px] text-zinc-500 uppercase font-bold">Ocupado</span>
+                       </div>
+                    </div>
                   </div>
+
+                  {/* Divisão por Períodos */}
+                  {['Manhã', 'Tarde', 'Noite'].map((periodo) => {
+                    const periodTimes = availableTimes.filter(t => {
+                      const h = parseInt(t.time.split(':')[0]);
+                      if (periodo === 'Manhã') return h < 12;
+                      if (periodo === 'Tarde') return h >= 12 && h < 18;
+                      return h >= 18;
+                    });
+
+                    if (periodTimes.length === 0) return null;
+
+                    return (
+                      <div key={periodo} className="space-y-3">
+                        <div className="flex items-center gap-2">
+                           <span className="text-[10px] font-black uppercase tracking-widest text-zinc-600">{periodo}</span>
+                           <div className="flex-1 h-[1px] bg-zinc-900"></div>
+                        </div>
+                        <div className="grid grid-cols-4 gap-3">
+                          {periodTimes.map(slot => {
+                            const isBooked = bookedIntervals.some(b => (slot.start < b.end && slot.end > b.start));
+                            const isSelected = selectedTime === slot.time;
+                            
+                            return (
+                              <button
+                                key={slot.time}
+                                disabled={isBooked}
+                                onClick={() => setSelectedTime(slot.time)}
+                                className={`py-3 rounded-2xl border-2 font-black text-xs transition-all duration-300 ${isBooked ? 'bg-zinc-900/30 border-transparent text-zinc-800 cursor-not-allowed' : isSelected ? 'bg-white border-white text-black shadow-[0_10px_20px_rgba(255,255,255,0.1)] active:scale-95' : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-700 active:scale-95'}`}
+                              >
+                                {slot.time}
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )
+                  })}
                 </motion.div>
               )}
 
-              {/* Botão Confirmar */}
+              {/* Botão Confirmar Flutuante */}
               <AnimatePresence>
                 {selectedDate && selectedTime && (
-                  <motion.button 
-                    initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
-                    onClick={handleConfirm}
-                    disabled={submitting}
-                    className="w-full h-14 mt-4 bg-white text-black font-black text-lg rounded-xl shadow-[0_0_20px_rgba(255,255,255,0.2)] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                  <motion.div 
+                    initial={{ opacity: 0, y: 50 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 50 }}
+                    className="fixed bottom-24 left-0 w-full px-5 z-40"
                   >
-                    {submitting ? (
-                      <div className="w-6 h-6 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
-                    ) : 'Confirmar Agendamento'}
-                  </motion.button>
+                    <button 
+                      onClick={handleConfirm}
+                      disabled={submitting}
+                      className="w-full h-16 bg-blue-600 text-white font-black text-sm uppercase tracking-[0.2em] rounded-2xl shadow-[0_15px_40px_rgba(0,87,255,0.4)] active:scale-[0.98] transition-all flex items-center justify-center gap-3"
+                    >
+                      {submitting ? (
+                        <Loader2 className="animate-spin" size={24} />
+                      ) : (
+                        <>
+                          <CheckCircle size={20} />
+                          Finalizar para {selectedTime}
+                        </>
+                      )}
+                    </button>
+                  </motion.div>
                 )}
               </AnimatePresence>
             </motion.div>
@@ -447,24 +512,6 @@ export default function AgendarPage() {
         </AnimatePresence>
       </main>
 
-      {/* Bottom Nav */}
-      {step < 4 && (
-        <nav className="bg-zinc-900/95 backdrop-blur-md fixed bottom-0 w-full rounded-t-2xl z-30 border-t border-zinc-800 shadow-[0_-4px_20px_rgba(0,0,0,0.4)] flex justify-around items-center h-20 px-4 pb-4">
-          <NavItem href="/client-home" icon={<Grid />} label="Início" />
-          <NavItem active href="/client-home/agendar" icon={<Calendar />} label="Agendar" />
-          <NavItem href="/client-home/agendamentos" icon={<Clock4 />} label="Histórico" />
-          <NavItem href="/client-home/perfil" icon={<UserIcon />} label="Perfil" />
-        </nav>
-      )}
     </div>
-  );
-}
-
-function NavItem({ active, icon, label, href }: { active?: boolean, icon: React.ReactNode, label: string, href: string }) {
-  return (
-    <Link href={href} className={`flex flex-col items-center justify-center transition-all duration-200 active:scale-90 ${active ? 'text-primary-container drop-shadow-[0_0_8px_rgba(0,87,255,0.4)]' : 'text-zinc-500'}`}>
-      <span className="size-6">{icon}</span>
-      <span className="text-[10px] font-semibold uppercase tracking-widest mt-1">{label}</span>
-    </Link>
   );
 }

@@ -15,6 +15,7 @@ export default function BarberProfilePage({ params }: { params: Promise<{ id: st
   const [barber, setBarber] = useState<any>(null);
   const [services, setServices] = useState<any[]>([]);
   const [portfolio, setPortfolio] = useState<any[]>([]);
+  const [completedCount, setCompletedCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -30,6 +31,15 @@ export default function BarberProfilePage({ params }: { params: Promise<{ id: st
       // Fetch Portfolio
       const { data: portData } = await supabase.from('portfolio_images').select('*').eq('barber_id', barberId).order('created_at', { ascending: false });
       if (portData) setPortfolio(portData);
+
+      // Fetch Completed Appointments Count (REAL DATA)
+      const { count } = await supabase
+        .from('appointments')
+        .select('*', { count: 'exact', head: true })
+        .eq('barber_id', barberId)
+        .eq('status', 'concluído');
+      
+      if (count) setCompletedCount(count);
 
       setLoading(false);
     };
@@ -91,7 +101,10 @@ export default function BarberProfilePage({ params }: { params: Promise<{ id: st
           
           <div className="flex items-center gap-6 mt-4 bg-zinc-900/50 backdrop-blur-md px-6 py-3 rounded-2xl border border-zinc-800">
             <div className="flex flex-col items-center">
-              <span className="text-white font-black text-lg flex items-center gap-1"><Star className="size-4 fill-primary-container text-primary-container"/> 5.0</span>
+              <span className="text-white font-black text-lg flex items-center gap-1">
+                <Star className={`size-4 ${completedCount > 0 ? 'fill-blue-500 text-blue-500' : 'text-zinc-700'}`}/> 
+                {completedCount > 0 ? '5.0' : '0.0'}
+              </span>
               <span className="text-zinc-500 text-[10px] uppercase font-bold tracking-widest">Avaliação</span>
             </div>
             <div className="w-px h-8 bg-zinc-800"></div>
@@ -101,7 +114,7 @@ export default function BarberProfilePage({ params }: { params: Promise<{ id: st
             </div>
             <div className="w-px h-8 bg-zinc-800"></div>
             <div className="flex flex-col items-center">
-              <span className="text-white font-black text-lg">+1k</span>
+              <span className="text-white font-black text-lg">{completedCount}</span>
               <span className="text-zinc-500 text-[10px] uppercase font-bold tracking-widest">Cortes</span>
             </div>
           </div>
