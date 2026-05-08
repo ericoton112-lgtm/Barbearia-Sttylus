@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import Link from 'next/link';
 import { 
   LogOut, 
   Check, 
@@ -13,7 +14,15 @@ import {
   TrendingUp, 
   Scissors,
   RefreshCw,
-  BellRing
+  BellRing,
+  Grid,
+  User,
+  Clock,
+  MoreVertical,
+  CheckCircle,
+  Timer,
+  Edit3,
+  DollarSign
 } from 'lucide-react';
 
 function urlB64ToUint8Array(base64String: string) {
@@ -33,7 +42,14 @@ export default function ProfessionalDashboardPage() {
   const [syncing, setSyncing] = useState(false);
   const [permissionStatus, setPermissionStatus] = useState<string>('default');
   const [isSubscribed, setIsSubscribed] = useState(false);
-  const [stats, setStats] = useState({ total: 0, pending: 0, completed: 0 });
+  
+  // Stats
+  const [totalEarnings, setTotalEarnings] = useState(0);
+  const [totalAppointments, setTotalAppointments] = useState(0);
+  const [monthlyEarnings, setMonthlyEarnings] = useState(0);
+  const [monthlyCompleted, setMonthlyCompleted] = useState(0);
+  const [nextClient, setNextClient] = useState<any>(null);
+  
   const router = useRouter();
 
   const fetchData = async () => {
@@ -44,7 +60,14 @@ export default function ProfessionalDashboardPage() {
         return;
       }
 
-      const today = new Date().toISOString().split('T')[0];
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+      const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+
+      // 1. Fetch Today's Appointments
       const { data: appts } = await supabase
         .from('appointments')
         .select(`
@@ -52,23 +75,47 @@ export default function ProfessionalDashboardPage() {
           appointment_date,
           status,
           client:profiles!client_id (full_name, avatar_url),
-          service:services!service_id (name, price)
+          service:services!service_id (name, price, duration_minutes)
         `)
         .eq('barber_id', user.id)
-        .gte('appointment_date', today + 'T00:00:00')
-        .lte('appointment_date', today + 'T23:59:59')
+        .gte('appointment_date', today.toISOString())
+        .lt('appointment_date', tomorrow.toISOString())
+        .neq('status', 'cancelado')
         .order('appointment_date', { ascending: true });
 
       if (appts) {
         setAppointments(appts);
-        setStats({
-          total: appts.length,
-          pending: appts.filter(a => a.status === 'confirmado').length,
-          completed: appts.filter(a => a.status === 'concluído').length
-        });
+        setTotalAppointments(appts.length);
+        
+        // Calculate daily earnings
+        const earnings = appts
+          .filter(a => a.status === 'concluído')
+          .reduce((acc, a) => acc + (Number(a.service?.price) || 0), 0);
+        setTotalEarnings(earnings);
+
+        // Find next client
+        const now = new Date();
+        const next = appts.find(a => new Date(a.appointment_date) > now && a.status === 'confirmado');
+        setNextClient(next || null);
       }
+
+      // 2. Fetch Monthly Stats
+      const { data: monthData } = await supabase
+        .from('appointments')
+        .select(`status, service:services!service_id (price)`)
+        .eq('barber_id', user.id)
+        .gte('appointment_date', monthStart.toISOString())
+        .eq('status', 'concluído');
+
+      if (monthData) {
+        const mEarnings = monthData.reduce((acc, a) => acc + (Number(a.service?.price) || 0), 0);
+        setMonthlyEarnings(mEarnings);
+        setMonthlyCompleted(monthData.length);
+      }
+
       setLoading(false);
 
+      // Check Notification Status
       if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
         const reg = await navigator.serviceWorker.ready;
         const sub = await reg.pushManager.getSubscription();
@@ -88,8 +135,6 @@ export default function ProfessionalDashboardPage() {
   }, []);
 
   const handleRequestPermission = async () => {
-    if (!('Notification' in window)) return;
-    
     setSyncing(true);
     try {
       if ('serviceWorker' in navigator) {
@@ -130,136 +175,207 @@ export default function ProfessionalDashboardPage() {
     }
   };
 
+  const handleCheckIn = async (id: string) => {
+    const { error } = await supabase.from('appointments').update({ status: 'concluído' }).eq('id', id);
+    if (!error) fetchData();
+  };
+
+  const formatTime = (dateStr: string) => {
+    return new Date(dateStr).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#0a0a0a] flex flex-col items-center justify-center text-white">
         <Loader2 className="animate-spin text-blue-500 mb-4" size={40} />
-        <p className="text-zinc-500 font-bold uppercase tracking-widest text-xs">Carregando Agenda...</p>
+        <p className="text-zinc-500 font-bold uppercase tracking-widest text-xs">Carregando Painel Premium...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white pb-10">
-      {/* Header Fixo Minimalista */}
-      <header className="sticky top-0 z-50 bg-[#0a0a0a]/80 backdrop-blur-md border-b border-zinc-900 px-6 py-4 flex justify-between items-center">
-        <div>
-          <h1 className="text-xl font-black italic uppercase tracking-tighter text-blue-500">Styllus Pro</h1>
-          <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Dashboard Barber</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <button 
-            onClick={handleRequestPermission}
-            className={`p-2 rounded-full transition-colors ${isSubscribed ? 'text-green-500 bg-green-500/10' : 'text-zinc-500 bg-zinc-900'}`}
-          >
-            {syncing ? <Loader2 className="animate-spin" size={20} /> : <BellRing size={20} />}
-          </button>
-          <button 
-            onClick={async () => { await supabase.auth.signOut(); window.location.href='/login'; }}
-            className="p-2 text-red-500 bg-red-500/10 rounded-full"
-          >
-            <LogOut size={20} />
-          </button>
-        </div>
-      </header>
+    <div className="min-h-screen bg-[#0a0a0a] text-white pb-28 relative overflow-hidden">
+      {/* Background Glow */}
+      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-blue-600/10 rounded-full blur-[120px] pointer-events-none"></div>
 
-      <main className="px-6 mt-6 space-y-8">
-        {/* Banner de Sincronização se necessário */}
-        {!isSubscribed && (
-          <div className="bg-blue-600 p-4 rounded-2xl flex items-center justify-between shadow-lg shadow-blue-900/20">
-            <div className="flex items-center gap-3">
-              <Bell className="text-white" />
-              <div>
-                <p className="text-sm font-bold">Avisos Desativados</p>
-                <p className="text-[10px] opacity-80">Clique para sincronizar agora.</p>
-              </div>
-            </div>
-            <button 
-              onClick={handleRequestPermission}
-              className="bg-white text-blue-600 px-4 py-2 rounded-xl text-xs font-black uppercase"
-            >
-              Conectar
-            </button>
+      <div className="relative z-10">
+        <header className="px-6 pt-12 pb-6 flex justify-between items-center bg-zinc-950/60 backdrop-blur-xl sticky top-0 z-40 border-b border-zinc-900">
+          <div>
+            <p className="text-zinc-500 font-bold uppercase tracking-widest text-[10px]">Profissional,</p>
+            <h1 className="text-xl font-black italic uppercase tracking-tighter text-white">Styllus Pro</h1>
           </div>
-        )}
+          <div className="flex items-center gap-3">
+             <button 
+                onClick={handleRequestPermission}
+                className={`p-2.5 rounded-xl transition-all active:scale-90 ${isSubscribed ? 'text-green-500 bg-green-500/10' : 'text-zinc-500 bg-zinc-900'}`}
+             >
+               {syncing ? <Loader2 className="animate-spin" size={20} /> : <BellRing size={20} />}
+             </button>
+             <button 
+                onClick={async () => { await supabase.auth.signOut(); window.location.href='/login'; }}
+                className="p-2.5 text-red-500 bg-red-500/10 rounded-xl active:scale-90"
+             >
+               <LogOut size={20} />
+             </button>
+          </div>
+        </header>
 
-        {/* Stats Grid */}
-        <section className="grid grid-cols-3 gap-3">
-          <div className="bg-zinc-900/50 border border-zinc-800 p-4 rounded-2xl text-center">
-            <p className="text-[10px] text-zinc-500 font-bold uppercase mb-1">Total</p>
-            <p className="text-2xl font-black">{stats.total}</p>
-          </div>
-          <div className="bg-blue-600/10 border border-blue-600/20 p-4 rounded-2xl text-center">
-            <p className="text-[10px] text-blue-500 font-bold uppercase mb-1">Fila</p>
-            <p className="text-2xl font-black text-blue-500">{stats.pending}</p>
-          </div>
-          <div className="bg-green-600/10 border border-green-600/20 p-4 rounded-2xl text-center">
-            <p className="text-[10px] text-green-500 font-bold uppercase mb-1">OK</p>
-            <p className="text-2xl font-black text-green-500">{stats.completed}</p>
-          </div>
-        </section>
-
-        {/* Agenda Section */}
-        <section>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold flex items-center gap-2">
-              <Calendar className="text-blue-500" size={20} />
-              Agenda de Hoje
-            </h2>
-            <button onClick={fetchData} className="text-zinc-500 active:rotate-180 transition-transform">
-              <RefreshCw size={18} />
-            </button>
-          </div>
-
-          {appointments.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 bg-zinc-900/30 rounded-3xl border border-zinc-900 border-dashed">
-              <Scissors size={40} className="text-zinc-800 mb-4" />
-              <p className="text-zinc-600 text-sm italic">Nenhum cliente agendado para hoje.</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {appointments.map((appt) => (
-                <div 
-                  key={appt.id} 
-                  className={`relative overflow-hidden bg-zinc-900 border ${appt.status === 'concluído' ? 'border-zinc-800 opacity-60' : 'border-zinc-800'} p-5 rounded-2xl flex items-center justify-between group transition-all`}
-                >
-                  {appt.status !== 'concluído' && (
-                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-600"></div>
-                  )}
-                  
-                  <div className="flex items-center gap-4">
-                    <div className="text-center min-w-[50px]">
-                      <p className="text-blue-500 font-black text-lg leading-none">
-                        {new Date(appt.appointment_date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                      </p>
-                    </div>
-                    
-                    <div>
-                      <h4 className="font-bold text-white text-base leading-tight">{appt.client?.full_name}</h4>
-                      <p className="text-[10px] text-zinc-500 uppercase font-bold tracking-widest mt-0.5">{appt.service?.name}</p>
-                    </div>
-                  </div>
-
-                  {appt.status !== 'concluído' ? (
-                    <button 
-                      onClick={() => {
-                        supabase.from('appointments').update({ status: 'concluído' }).eq('id', appt.id).then(() => fetchData());
-                      }}
-                      className="bg-blue-600 hover:bg-blue-500 text-white p-3 rounded-xl shadow-lg shadow-blue-900/40 active:scale-90 transition-all"
-                    >
-                      <Check size={20} />
-                    </button>
-                  ) : (
-                    <div className="bg-zinc-800 p-2 rounded-full text-green-500">
-                      <Check size={16} />
-                    </div>
-                  )}
+        <main className="px-6 mt-8 space-y-8">
+          {/* Sincronização Banner se desativado */}
+          {!isSubscribed && (
+            <div className="bg-gradient-to-r from-blue-600 to-blue-500 p-5 rounded-2xl shadow-xl shadow-blue-900/20 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="bg-white/20 p-2 rounded-lg">
+                  <Bell className="text-white" size={20} />
                 </div>
-              ))}
+                <div>
+                  <p className="text-sm font-bold">Avisos Offline</p>
+                  <p className="text-[10px] opacity-80">Conecte para receber alertas sonoros.</p>
+                </div>
+              </div>
+              <button 
+                onClick={handleRequestPermission}
+                className="bg-white text-blue-600 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest shadow-sm active:scale-95"
+              >
+                Conectar
+              </button>
             </div>
           )}
-        </section>
-      </main>
+
+          {/* Quick Stats Summary */}
+          <section className="grid grid-cols-2 gap-4">
+            <div className="bg-zinc-900/80 backdrop-blur-md p-5 rounded-2xl border border-zinc-800 flex flex-col justify-between h-36">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Faturamento Hoje</span>
+              <div className="flex flex-col">
+                <span className="text-2xl font-black text-blue-500">R$ {totalEarnings.toFixed(2).replace('.', ',')}</span>
+                <span className="text-[10px] text-green-500 font-bold">Hoje • {totalAppointments} clientes</span>
+              </div>
+            </div>
+            <div className="bg-zinc-900/80 backdrop-blur-md p-5 rounded-2xl border border-zinc-800 flex flex-col justify-between h-36">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Mês Atual</span>
+              <div className="flex flex-col">
+                <span className="text-2xl font-black text-white">R$ {monthlyEarnings.toFixed(2).replace('.', ',')}</span>
+                <span className="text-[10px] text-zinc-500 font-bold">{monthlyCompleted} cortes realizados</span>
+              </div>
+            </div>
+          </section>
+
+          {/* Next Client Card */}
+          <section>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-sm font-black uppercase tracking-widest text-zinc-500">Próximo Cliente</h2>
+            </div>
+            {nextClient ? (
+              <div className="bg-gradient-to-br from-zinc-900 to-black rounded-3xl border border-blue-900/30 overflow-hidden shadow-2xl shadow-blue-900/10">
+                <div className="bg-blue-600 px-5 py-2.5 flex justify-between items-center">
+                   <div className="flex items-center gap-2">
+                     <Timer size={14} />
+                     <span className="text-[10px] font-black uppercase tracking-widest">Em Instantes</span>
+                   </div>
+                   <span className="text-xs font-black">{formatTime(nextClient.appointment_date)}</span>
+                </div>
+                <div className="p-6">
+                  <div className="flex items-center gap-4 mb-6">
+                    <div className="w-14 h-14 bg-zinc-800 rounded-full border-2 border-blue-600 flex items-center justify-center overflow-hidden">
+                      {nextClient.client?.avatar_url ? <img src={nextClient.client.avatar_url} className="w-full h-full object-cover" /> : <User className="text-zinc-500" />}
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold text-white leading-none mb-1">{nextClient.client?.full_name}</h3>
+                      <p className="text-zinc-500 text-xs font-bold uppercase tracking-wider">{nextClient.service?.name}</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button 
+                      onClick={() => handleCheckIn(nextClient.id)}
+                      className="bg-white text-black py-4 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all"
+                    >
+                      <CheckCircle size={16} /> Check-in
+                    </button>
+                    <button className="bg-zinc-800 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all">
+                      <Edit3 size={16} /> Detalhes
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-zinc-900/40 rounded-3xl border border-zinc-800 border-dashed p-10 text-center flex flex-col items-center gap-3">
+                 <Calendar className="text-zinc-700" size={32} />
+                 <p className="text-zinc-500 text-sm italic">Nenhum cliente na fila no momento.</p>
+              </div>
+            )}
+          </section>
+
+          {/* Daily View List */}
+          <section>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-sm font-black uppercase tracking-widest text-zinc-500">Agenda de Hoje</h2>
+              <button onClick={fetchData} className="p-2 bg-zinc-900 rounded-lg text-zinc-500 active:rotate-180 transition-all">
+                <RefreshCw size={16} />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              {appointments.length === 0 ? (
+                <p className="text-zinc-600 text-center text-sm py-10">Sua agenda está vazia para hoje.</p>
+              ) : (
+                appointments.map((appt) => (
+                  <div 
+                    key={appt.id} 
+                    className={`bg-zinc-900/60 border ${appt.status === 'concluído' ? 'border-zinc-800 opacity-50' : 'border-zinc-800'} p-5 rounded-2xl flex items-center justify-between group active:bg-zinc-800 transition-all`}
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="text-center min-w-[50px]">
+                        <span className="block text-lg font-black text-white">{formatTime(appt.appointment_date)}</span>
+                        <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-tighter">{appt.service?.duration_minutes}m</span>
+                      </div>
+                      <div className="w-[1px] h-8 bg-zinc-800"></div>
+                      <div>
+                        <h4 className="font-bold text-white text-base leading-tight">{appt.client?.full_name}</h4>
+                        <p className="text-[10px] text-blue-500 font-black uppercase tracking-widest mt-0.5">{appt.service?.name}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      {appt.status !== 'concluído' ? (
+                        <button 
+                          onClick={() => handleCheckIn(appt.id)}
+                          className="bg-blue-600/10 text-blue-500 p-2.5 rounded-xl border border-blue-600/20 active:scale-90 transition-all"
+                        >
+                          <Check size={20} />
+                        </button>
+                      ) : (
+                        <div className="bg-zinc-800 p-2 rounded-full text-green-500">
+                          <Check size={16} />
+                        </div>
+                      )}
+                      <button className="text-zinc-700 p-1">
+                        <MoreVertical size={18} />
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </section>
+        </main>
+      </div>
+
+      {/* Bottom Nav Bar */}
+      <nav className="bg-zinc-950/95 backdrop-blur-2xl fixed bottom-0 w-full rounded-t-[32px] z-50 border-t border-zinc-900 shadow-[0_-10px_40px_rgba(0,0,0,0.6)] flex justify-around items-center h-24 px-6 pb-6">
+        <NavItem active href="/professional-dashboard" icon={<Grid size={24} />} label="Início" />
+        <NavItem href="/professional-dashboard/agenda" icon={<Calendar size={24} />} label="Agenda" />
+        <NavItem href="/professional-dashboard/equipe" icon={<Users size={24} />} label="Equipe" />
+        <NavItem href="/professional-dashboard/servicos" icon={<Scissors size={24} />} label="Serviços" />
+        <NavItem href="/professional-dashboard/perfil" icon={<User size={24} />} label="Perfil" />
+      </nav>
     </div>
+  );
+}
+
+function NavItem({ active, icon, label, href }: { active?: boolean, icon: React.ReactNode, label: string, href: string }) {
+  return (
+    <Link href={href} className={`flex flex-col items-center justify-center transition-all duration-300 active:scale-75 ${active ? 'text-blue-500 drop-shadow-[0_0_10px_rgba(59,130,246,0.5)] scale-110' : 'text-zinc-600'}`}>
+      <div className={`${active ? 'mb-1' : 'mb-1 opacity-70'}`}>{icon}</div>
+      <span className={`text-[8px] font-black uppercase tracking-widest transition-all ${active ? 'opacity-100' : 'opacity-40'}`}>{label}</span>
+    </Link>
   );
 }
