@@ -42,6 +42,7 @@ export default function ProfessionalDashboardPage() {
   const [syncing, setSyncing] = useState(false);
   const [permissionStatus, setPermissionStatus] = useState<string>('default');
   const [isSubscribed, setIsSubscribed] = useState(false);
+  const [isAccepting, setIsAccepting] = useState(true);
   
   // Stats
   const [totalEarnings, setTotalEarnings] = useState(0);
@@ -59,6 +60,10 @@ export default function ProfessionalDashboardPage() {
         window.location.href = '/login';
         return;
       }
+
+      // Fetch Profile for is_accepting status
+      const { data: prof } = await supabase.from('profiles').select('is_accepting_appointments').eq('id', user.id).single();
+      if (prof) setIsAccepting(prof.is_accepting_appointments);
 
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -194,6 +199,16 @@ export default function ProfessionalDashboardPage() {
     if (!error) fetchData();
   };
 
+  const handleToggleOpen = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    
+    const nextStatus = !isAccepting;
+    setIsAccepting(nextStatus);
+    
+    await supabase.from('profiles').update({ is_accepting_appointments: nextStatus }).eq('id', user.id);
+  };
+
   const formatTime = (dateStr: string) => {
     return new Date(dateStr).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
   };
@@ -216,9 +231,18 @@ export default function ProfessionalDashboardPage() {
         <header className="px-6 pt-12 pb-6 flex justify-between items-center bg-zinc-950/60 backdrop-blur-xl sticky top-0 z-40 border-b border-zinc-900">
           <div>
             <p className="text-zinc-500 font-bold uppercase tracking-widest text-[10px]">Profissional,</p>
-            <h1 className="text-xl font-black italic uppercase tracking-tighter text-white">Styllus Pro</h1>
+            <h1 className="text-xl font-black italic uppercase tracking-tighter text-white">Barbearia Styllus</h1>
           </div>
           <div className="flex items-center gap-3">
+             {/* Toggle Abrir/Fechar */}
+             <button 
+                onClick={handleToggleOpen}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all active:scale-95 ${isAccepting ? 'bg-green-500/10 border-green-500/30 text-green-500' : 'bg-red-500/10 border-red-500/30 text-red-500'}`}
+             >
+               <div className={`w-2 h-2 rounded-full ${isAccepting ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
+               <span className="text-[10px] font-black uppercase tracking-widest">{isAccepting ? 'Aberto' : 'Fechado'}</span>
+             </button>
+
              <button 
                 onClick={handleRequestPermission}
                 className={`p-2.5 rounded-xl transition-all active:scale-90 ${isSubscribed ? 'text-green-500 bg-green-500/10' : 'text-zinc-500 bg-zinc-900'}`}
