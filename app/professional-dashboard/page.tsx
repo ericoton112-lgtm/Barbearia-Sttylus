@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { LogOut, Check, Bell } from 'lucide-react';
+import { LogOut, Check, Bell, Loader2 } from 'lucide-react';
 
 function urlB64ToUint8Array(base64String: string) {
   const padding = '='.repeat((4 - base64String.length % 4) % 4);
@@ -23,6 +23,7 @@ function urlB64ToUint8Array(base64String: string) {
 export default function ProfessionalDashboardPage() {
   const [appointments, setAppointments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
   const [permissionStatus, setPermissionStatus] = useState<string>('default');
   const [isSubscribed, setIsSubscribed] = useState(false);
   const router = useRouter();
@@ -56,13 +57,13 @@ export default function ProfessionalDashboardPage() {
     if (appts) setAppointments(appts);
     setLoading(false);
 
-    // Check subscription in background to avoid blocking
+    // Check subscription in background
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.ready.then(reg => {
         reg.pushManager.getSubscription().then(sub => {
           setIsSubscribed(!!sub);
-        });
-      });
+        }).catch(() => setIsSubscribed(false));
+      }).catch(() => setIsSubscribed(false));
     }
   };
 
@@ -75,7 +76,7 @@ export default function ProfessionalDashboardPage() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    router.replace('/login');
+    window.location.href = '/login';
   };
 
   const handleComplete = async (id: string) => {
@@ -86,18 +87,16 @@ export default function ProfessionalDashboardPage() {
   const handleRequestPermission = async () => {
     if (!('Notification' in window)) return;
     
-    const permission = await Notification.requestPermission();
-    setPermissionStatus(permission);
+    setSyncing(true);
+    try {
+      const permission = await Notification.requestPermission();
+      setPermissionStatus(permission);
 
-    if (permission === 'granted') {
-      try {
+      if (permission === 'granted') {
         const registration = await navigator.serviceWorker.ready;
         const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
         
-        if (!vapidPublicKey) {
-          console.error('VAPID key missing');
-          return;
-        }
+        if (!vapidPublicKey) throw new Error('VAPID key missing');
 
         const applicationServerKey = urlB64ToUint8Array(vapidPublicKey);
         const sub = await registration.pushManager.subscribe({
@@ -109,32 +108,27 @@ export default function ProfessionalDashboardPage() {
         const { data: { user } } = await supabase.auth.getUser();
         
         if (user) {
-          const { data: existing } = await supabase
-            .from('push_subscriptions')
-            .select('*')
-            .eq('endpoint', subJson.endpoint)
-            .single();
-
-          if (!existing) {
-            await supabase.from('push_subscriptions').insert({
-              user_id: user.id,
-              endpoint: subJson.endpoint,
-              p256dh: subJson.keys?.p256dh,
-              auth: subJson.keys?.auth
-            });
-          }
+          await supabase.from('push_subscriptions').upsert({
+            user_id: user.id,
+            endpoint: subJson.endpoint,
+            p256dh: subJson.keys?.p256dh,
+            auth: subJson.keys?.auth
+          }, { onConflict: 'endpoint' });
         }
         setIsSubscribed(true);
-      } catch (e) {
-        console.error('Subscription failed:', e);
       }
+    } catch (e) {
+      console.error('Subscription failed:', e);
+      alert('Erro ao conectar: ' + (e instanceof Error ? e.message : 'Verifique sua conexão'));
+    } finally {
+      setSyncing(false);
     }
   };
 
   if (loading) {
     return (
       <div className="min-h-screen bg-[#131313] flex items-center justify-center text-white">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-blue-500"></div>
+        <Loader2 className="animate-spin text-blue-500" size={32} />
       </div>
     );
   }
@@ -164,9 +158,11 @@ export default function ProfessionalDashboardPage() {
               </div>
             </div>
             <button 
+              disabled={syncing}
               onClick={handleRequestPermission}
-              className="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold"
+              className="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold disabled:opacity-50 flex items-center gap-2"
             >
+              {syncing && <Loader2 size={12} className="animate-spin" />}
               {permissionStatus === 'granted' ? 'CONECTAR' : 'ATIVAR'}
             </button>
           </section>
