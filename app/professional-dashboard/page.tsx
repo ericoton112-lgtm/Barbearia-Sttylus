@@ -65,6 +65,16 @@ export default function ProfessionalDashboardPage() {
   }, []);
 
   const handleRequestPermission = async () => {
+    // RESET EXPERIMENTAL: Limpar workers antigos antes de tentar
+    if ('serviceWorker' in navigator) {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      for (const reg of registrations) {
+        await reg.unregister();
+      }
+      // Forçar recarga para registrar o novo limpo
+      await navigator.serviceWorker.register('/sw.js');
+    }
+
     setSyncing(true);
     try {
       const permission = await Notification.requestPermission();
