@@ -24,6 +24,7 @@ export default function ProfessionalDashboardPage() {
   const [appointments, setAppointments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [permissionStatus, setPermissionStatus] = useState<string>('default');
+  const [isSubscribed, setIsSubscribed] = useState(false);
   const router = useRouter();
 
   const fetchData = async () => {
@@ -31,6 +32,17 @@ export default function ProfessionalDashboardPage() {
     if (!user) {
       router.replace('/login');
       return;
+    }
+
+    // Check existing subscription
+    try {
+      if ('serviceWorker' in navigator) {
+        const registration = await navigator.serviceWorker.ready;
+        const sub = await registration.pushManager.getSubscription();
+        setIsSubscribed(!!sub);
+      }
+    } catch (e) {
+      console.error('Error checking sub', e);
     }
 
     const todayStart = new Date();
@@ -99,13 +111,23 @@ export default function ProfessionalDashboardPage() {
         const { data: { user } } = await supabase.auth.getUser();
         
         if (user) {
-          await supabase.from('push_subscriptions').insert({
-            user_id: user.id,
-            endpoint: subJson.endpoint,
-            p256dh: subJson.keys?.p256dh,
-            auth: subJson.keys?.auth
-          });
+          // Check if already in DB
+          const { data: existing } = await supabase
+            .from('push_subscriptions')
+            .select('*')
+            .eq('endpoint', subJson.endpoint)
+            .single();
+
+          if (!existing) {
+            await supabase.from('push_subscriptions').insert({
+              user_id: user.id,
+              endpoint: subJson.endpoint,
+              p256dh: subJson.keys?.p256dh,
+              auth: subJson.keys?.auth
+            });
+          }
         }
+        setIsSubscribed(true);
       } catch (e) {
         console.error('Subscription failed:', e);
       }
@@ -131,20 +153,24 @@ export default function ProfessionalDashboardPage() {
 
       <main className="space-y-6">
         {/* Notificações Banner */}
-        {permissionStatus === 'default' && (
+        {(!isSubscribed || permissionStatus === 'default') && permissionStatus !== 'denied' && (
           <section className="bg-blue-600/20 border border-blue-600/30 p-4 rounded-xl flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <Bell className="text-blue-500" />
               <div>
-                <p className="text-sm font-bold">Ativar Notificações</p>
-                <p className="text-[10px] text-zinc-400">Receba alertas de novos clientes.</p>
+                <p className="text-sm font-bold">
+                  {permissionStatus === 'granted' ? 'Sincronizar Notificações' : 'Ativar Notificações'}
+                </p>
+                <p className="text-[10px] text-zinc-400">
+                  {permissionStatus === 'granted' ? 'Clique para finalizar a conexão.' : 'Receba alertas de novos clientes.'}
+                </p>
               </div>
             </div>
             <button 
               onClick={handleRequestPermission}
               className="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold"
             >
-              ATIVAR
+              {permissionStatus === 'granted' ? 'CONECTAR' : 'ATIVAR'}
             </button>
           </section>
         )}
@@ -158,6 +184,13 @@ export default function ProfessionalDashboardPage() {
                 <p className="text-[10px] text-zinc-400">Por favor, libere as notificações nas configurações do seu navegador para receber alertas.</p>
               </div>
             </div>
+          </section>
+        )}
+
+        {isSubscribed && permissionStatus === 'granted' && (
+          <section className="bg-green-600/20 border border-green-600/30 p-4 rounded-xl flex items-center gap-3">
+            <Check className="text-green-500" />
+            <p className="text-xs font-bold text-green-500">Notificações Ativas!</p>
           </section>
         )}
 
