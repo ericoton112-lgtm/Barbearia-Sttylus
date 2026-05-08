@@ -81,9 +81,12 @@ export default function ProfessionalDashboardPage() {
     window.location.href = '/login';
   };
 
+  const handleComplete = async (id: string) => {
+    await supabase.from('appointments').update({ status: 'concluído' }).eq('id', id);
+    fetchData();
+  };
+
   const handleRequestPermission = async () => {
-    alert('Botão apertado! Tentando conectar...');
-    
     if (!('Notification' in window)) {
       alert('Seu navegador não suporta notificações.');
       return;
@@ -101,6 +104,13 @@ export default function ProfessionalDashboardPage() {
         const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || "BFVMa0nULV7_Yu2LcL0Di5eyXdtnMzCZml-QWX7kHzHa8Pw_EmtPhE0v432Enkd_KJSWnZkcl1ThKO1Js_wIxH8";
         
         const applicationServerKey = urlB64ToUint8Array(vapidPublicKey);
+        
+        // Unsubscribe from old subscription to force a new one with correct keys
+        const oldSub = await registration.pushManager.getSubscription();
+        if (oldSub) {
+          await oldSub.unsubscribe();
+        }
+
         const sub = await registration.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey
@@ -110,15 +120,18 @@ export default function ProfessionalDashboardPage() {
         const { data: { user } } = await supabase.auth.getUser();
         
         if (user) {
-          await supabase.from('push_subscriptions').upsert({
+          // Limpar inscrições antigas do banco para este usuário antes de inserir a nova
+          await supabase.from('push_subscriptions').delete().eq('user_id', user.id);
+
+          await supabase.from('push_subscriptions').insert({
             user_id: user.id,
             endpoint: subJson.endpoint,
             p256dh: subJson.keys?.p256dh,
             auth: subJson.keys?.auth
-          }, { onConflict: 'endpoint' });
+          });
         }
         setIsSubscribed(true);
-        alert('Sincronizado com sucesso!');
+        alert('Sincronizado com sucesso! Faça um teste agora.');
       } else {
         alert('Permissão negada pelo navegador.');
       }
@@ -140,7 +153,7 @@ export default function ProfessionalDashboardPage() {
   return (
     <div className="min-h-screen bg-[#131313] text-white p-5">
       <header className="flex justify-between items-center mb-8">
-        <h1 className="text-xl font-bold italic uppercase">Painel Styllus</h1>
+        <h1 className="text-xl font-bold italic uppercase text-blue-500">Styllus Pro</h1>
         <button onClick={handleLogout} className="p-2 text-red-500">
           <LogOut size={24} />
         </button>
@@ -149,12 +162,12 @@ export default function ProfessionalDashboardPage() {
       <main className="space-y-6">
         {/* Notificações Banner */}
         {(!isSubscribed || permissionStatus === 'default') && permissionStatus !== 'denied' && (
-          <section className="bg-blue-600/20 border border-blue-600/30 p-6 rounded-2xl">
+          <section className="bg-blue-600/20 border border-blue-600/30 p-6 rounded-2xl shadow-[0_0_20px_rgba(37,99,235,0.1)]">
             <div className="flex items-center gap-3 mb-4">
               <Bell className="text-blue-500" size={28} />
               <div>
-                <p className="text-lg font-bold">Conectar Notificações</p>
-                <p className="text-xs text-zinc-400">Clique no botão abaixo para receber avisos.</p>
+                <p className="text-lg font-bold">Conectar Avisos</p>
+                <p className="text-xs text-zinc-400">Ative para ouvir o som de novos clientes.</p>
               </div>
             </div>
             <button 
@@ -162,32 +175,49 @@ export default function ProfessionalDashboardPage() {
               className="w-full bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-3 shadow-lg active:scale-95 transition-all"
             >
               {syncing ? <Loader2 className="animate-spin" /> : <Bell size={20} />}
-              {syncing ? 'CONECTANDO...' : 'CONECTAR AGORA'}
+              {syncing ? 'CONECTANDO...' : 'ATIVAR AGORA'}
             </button>
           </section>
         )}
 
         {isSubscribed && permissionStatus === 'granted' && (
-          <section className="bg-green-600/20 border border-green-600/30 p-4 rounded-xl flex items-center gap-3">
-            <Check className="text-green-500" />
-            <p className="text-xs font-bold text-green-500">Notificações Ativas!</p>
+          <section className="bg-green-600/20 border border-green-600/30 p-4 rounded-xl flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <Check className="text-green-500" />
+              <p className="text-xs font-bold text-green-500 uppercase tracking-wider">Avisos Ativados</p>
+            </div>
+            <button 
+              onClick={handleRequestPermission}
+              className="text-[10px] text-zinc-500 underline"
+            >
+              Re-sincronizar
+            </button>
           </section>
         )}
 
-        <h2 className="text-lg font-semibold border-b border-zinc-800 pb-2 uppercase tracking-tighter">Agenda de Hoje</h2>
+        <div className="flex justify-between items-center border-b border-zinc-800 pb-2">
+          <h2 className="text-sm font-bold uppercase tracking-widest text-zinc-500">Hoje</h2>
+          <span className="text-xs bg-zinc-800 px-2 py-1 rounded text-zinc-400">{appointments.length} agendamentos</span>
+        </div>
         
         {appointments.length === 0 ? (
-          <p className="text-zinc-500 text-center py-10 italic">Nenhum agendamento encontrado.</p>
+          <div className="flex flex-col items-center justify-center py-20 opacity-30">
+            <Scissors size={40} className="mb-4" />
+            <p className="text-sm italic">Nenhum cliente para hoje.</p>
+          </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {appointments.map(appt => (
-              <div key={appt.id} className="bg-zinc-900 p-4 rounded-xl border border-zinc-800 flex justify-between items-center">
+              <div key={appt.id} className="bg-zinc-900 p-4 rounded-xl border border-zinc-800 flex justify-between items-center group active:bg-zinc-800 transition-colors">
                 <div>
-                  <p className="text-sm font-bold text-blue-500">
-                    {new Date(appt.appointment_date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                  </p>
-                  <p className="font-bold">{appt.client?.full_name}</p>
-                  <p className="text-xs text-zinc-400">{appt.service?.name}</p>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
+                    <p className="text-sm font-black text-white">
+                      {new Date(appt.appointment_date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  </div>
+                  <p className="font-bold text-zinc-200">{appt.client?.full_name}</p>
+                  <p className="text-[10px] uppercase tracking-wider text-zinc-500">{appt.service?.name}</p>
                 </div>
                 
                 {appt.status !== 'concluído' && (
@@ -195,7 +225,7 @@ export default function ProfessionalDashboardPage() {
                     onClick={() => {
                       supabase.from('appointments').update({ status: 'concluído' }).eq('id', appt.id).then(() => fetchData());
                     }}
-                    className="bg-blue-600 p-3 rounded-xl"
+                    className="bg-blue-600/10 hover:bg-blue-600 text-blue-500 p-3 rounded-xl border border-blue-600/20 transition-all"
                   >
                     <Check size={20} />
                   </button>
