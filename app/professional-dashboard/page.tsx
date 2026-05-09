@@ -1,4 +1,5 @@
 'use client';
+// Rebuild for VAPID keys update
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
