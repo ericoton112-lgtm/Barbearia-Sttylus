@@ -230,8 +230,8 @@ export default function ProfessionalDashboardPage() {
       setPermissionStatus(permission);
 
       if (permission === 'granted') {
-        // Nova Chave Hardcoded (V3)
-        const vapidPublicKey = "BJFdUqLRJmQreMP422Ppnhzfsgh8L33wSBPqQ4aY-hDVBsQ05Ny9OkeHtP9ZYTRI7ex8RWf2Pdbh0Hgrfxrpcc0";
+        // Chave principal via variável de ambiente, com hardcode (V3) de fallback
+        const vapidPublicKey = (process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || "BJFdUqLRJmQreMP422Ppnhzfsgh8L33wSBPqQ4aY-hDVBsQ05Ny9OkeHtP9ZYTRI7ex8RWf2Pdbh0Hgrfxrpcc0").trim();
         
         // Desinscrever de qualquer assinatura antiga presa no navegador
         try {
@@ -521,13 +521,6 @@ export default function ProfessionalDashboardPage() {
             </div>
           </section>
         </main>
-        
-        {/* Debug Info (Temporário para resolver o erro) */}
-        <div className="px-6 mt-10 mb-20 opacity-20 hover:opacity-100 transition-opacity">
-           <p className="text-[8px] font-mono text-zinc-600 break-all">
-             DEBUG VAPID: {process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || "SEM CHAVE (USANDO FALLBACK)"}
-           </p>
-        </div>
       </div>
 
       {/* Bottom Nav Bar */}
