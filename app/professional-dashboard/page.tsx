@@ -1,5 +1,5 @@
 'use client';
-// Rebuild for VAPID keys update
+// Final VAPID keys sync rebuild
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -201,22 +201,34 @@ export default function ProfessionalDashboardPage() {
     setSyncing(true);
     try {
       if (!('serviceWorker' in navigator)) {
-        throw new Error('Service Worker não suportado');
+        throw new Error('Navegador não suporta notificações.');
       }
 
-      let registration = await navigator.serviceWorker.getRegistration();
-      if (!registration) {
-        registration = await navigator.serviceWorker.register('/sw.js');
-      }
+      // Limpeza agressiva de registros antigos
+      const regs = await navigator.serviceWorker.getRegistrations();
+      for (const r of regs) await r.unregister();
 
-      // Aguarda o SW estar pronto
-      await navigator.serviceWorker.ready;
+      // Registro da nova versão do Service Worker
+      const registration = await navigator.serviceWorker.register('/sw-v2.js');
+      
+      // Aguarda ativação
+      await new Promise((resolve) => {
+        if (registration.active) resolve(null);
+        registration.addEventListener('updatefound', () => {
+          const newWorker = registration.installing;
+          newWorker?.addEventListener('statechange', () => {
+            if (newWorker.state === 'activated') resolve(null);
+          });
+        });
+        setTimeout(resolve, 2000); // Timeout de segurança
+      });
 
       const permission = await Notification.requestPermission();
       setPermissionStatus(permission);
 
       if (permission === 'granted') {
-        const vapidPublicKey = (process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || "BEWIEd9BEo8NYSw4ULRd2CE8EqXhJ_R5yIIzXkbUKpwTCWRJkxM99sPFNETUFn6hoPCIMRRrYDtQXUAZrnQH8fA").trim();
+        // Chave Hardcoded para evitar qualquer erro de ambiente
+        const vapidPublicKey = "BEWIEd9BEo8NYSw4ULRd2CE8EqXhJ_R5yIIzXkbUKpwTCWRJkxM99sPFNETUFn6hoPCIMRRrYDtQXUAZrnQH8fA";
         
         const sub = await registration.pushManager.subscribe({
           userVisibleOnly: true,
