@@ -228,6 +228,7 @@ export default function ProfessionalDashboardPage() {
       }
     } catch (e: any) {
       console.error(e);
+      alert('Erro ao conectar avisos: Certifique-se de que o app está instalado na tela inicial e que você está usando a versão oficial (Vercel) com HTTPS.');
     } finally {
       setSyncing(false);
     }
