@@ -21,7 +21,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({children}: {children: React.ReactNode}) {
   return (
-    <html lang="pt-BR" className={`${manrope.variable} dark`}>
+    <html lang="pt-BR" suppressHydrationWarning className={`${manrope.variable} dark`}>
       <head>
         <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
         <link rel="apple-touch-icon" href="/icon.svg" />

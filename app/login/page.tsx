@@ -25,20 +25,34 @@ export default function LoginPage() {
   useEffect(() => {
     const checkSession = async () => {
       if (!supabase) return;
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', session.user.id)
-          .single();
-
-        if (profile?.role === 'barber') {
-          window.location.href = '/professional-dashboard';
-        } else {
-          window.location.href = '/client-home';
+      try {
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          console.error('Erro de sessão:', sessionError);
+          await supabase.auth.signOut();
+          setInitialLoading(false);
+          return;
         }
-      } else {
+
+        if (session?.user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', session.user.id)
+            .single();
+
+          if (profile?.role === 'barber') {
+            window.location.href = '/professional-dashboard';
+          } else {
+            window.location.href = '/client-home';
+          }
+        } else {
+          setInitialLoading(false);
+        }
+      } catch (err) {
+        console.error('Erro crítico na verificação de sessão:', err);
+        await supabase.auth.signOut();
         setInitialLoading(false);
       }
     };

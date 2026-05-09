@@ -31,7 +31,6 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
       {/* Bottom Nav Bar Centralizada */}
       <nav className="bg-zinc-950/90 backdrop-blur-2xl fixed bottom-0 w-full rounded-t-[32px] z-50 border-t border-zinc-900 shadow-[0_-10px_40px_rgba(0,0,0,0.6)] flex justify-around items-center h-24 px-6 pb-6">
         <NavItem active={pathname === '/client-home'} href="/client-home" icon={<Grid size={24} />} label="Início" />
-        <NavItem active={pathname === '/client-home/agendar'} href="/client-home/agendar" icon={<Calendar size={24} />} label="Agendar" />
         <NavItem active={pathname === '/client-home/agendamentos'} href="/client-home/agendamentos" icon={<Clock size={24} />} label="Agenda" />
         <NavItem active={pathname === '/client-home/perfil'} href="/client-home/perfil" icon={<UserIcon size={24} />} label="Perfil" />
       </nav>

@@ -46,12 +46,16 @@ export default function EquipePage() {
 
   const handleDismiss = async (id: string, name: string) => {
     if (confirm(`Tem certeza que deseja desligar ${name} da equipe?`)) {
-      const { error } = await supabase.from('profiles').update({ role: 'client' }).eq('id', id);
-      if (error) {
-        alert('Erro ao desligar barbeiro.');
-      } else {
-        fetchData();
+      try {
+        const { error } = await supabase.from('profiles').update({ role: 'client' }).eq('id', id);
+        if (error) throw error;
+        
+        await fetchData();
         setIsModalOpen(false);
+        alert(`${name} foi desligado da equipe com sucesso.`);
+      } catch (err: any) {
+        console.error('Erro ao desligar:', err);
+        alert('Erro ao desligar barbeiro. Verifique se você tem permissões de administrador no banco de dados.');
       }
     }
   };

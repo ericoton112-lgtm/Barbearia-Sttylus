@@ -174,8 +174,13 @@ export default function ProfessionalDashboardPage() {
         const sub = await reg.pushManager.getSubscription();
         setIsSubscribed(!!sub);
       }
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      console.error('Erro ao buscar dados:', err);
+      if (err?.message?.includes('refresh_token') || err?.status === 401 || err?.name === 'AuthApiError') {
+        console.warn('Sessão inválida detectada, redirecionando para login...');
+        await supabase.auth.signOut();
+        window.location.href = '/login';
+      }
       setLoading(false);
     }
   };
