@@ -227,8 +227,8 @@ export default function ProfessionalDashboardPage() {
         setIsSubscribed(true);
       }
     } catch (e: any) {
-      console.error(e);
-      alert('Erro ao conectar avisos: Certifique-se de que o app está instalado na tela inicial e que você está usando a versão oficial (Vercel) com HTTPS.');
+      console.error('Push error details:', e);
+      alert(`Erro técnico: ${e.message || 'Desconhecido'}. \n\nInstruções: \n1. Verifique se o app está instalado na tela inicial.\n2. Vá nas configurações do site no Chrome/Safari e limpe as permissões de notificação.\n3. Certifique-se de que não está em modo anônimo.`);
     } finally {
       setSyncing(false);
     }
