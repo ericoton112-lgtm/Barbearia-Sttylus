@@ -233,6 +233,16 @@ export default function ProfessionalDashboardPage() {
         // Nova Chave Hardcoded (V3)
         const vapidPublicKey = "BJFdUqLRJmQreMP422Ppnhzfsgh8L33wSBPqQ4aY-hDVBsQ05Ny9OkeHtP9ZYTRI7ex8RWf2Pdbh0Hgrfxrpcc0";
         
+        // Desinscrever de qualquer assinatura antiga presa no navegador
+        try {
+          const existingSub = await registration.pushManager.getSubscription();
+          if (existingSub) {
+            await existingSub.unsubscribe();
+          }
+        } catch (unsubErr) {
+          console.warn("Erro ao desinscrever da notificação antiga", unsubErr);
+        }
+
         const sub = await registration.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey: urlB64ToUint8Array(vapidPublicKey)
