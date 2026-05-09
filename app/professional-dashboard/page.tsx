@@ -211,24 +211,27 @@ export default function ProfessionalDashboardPage() {
       // Registro da nova versão do Service Worker
       const registration = await navigator.serviceWorker.register('/sw-v2.js');
       
-      // Aguarda ativação
+      // Aguarda ativação com tempo extra
       await new Promise((resolve) => {
-        if (registration.active) resolve(null);
-        registration.addEventListener('updatefound', () => {
-          const newWorker = registration.installing;
-          newWorker?.addEventListener('statechange', () => {
-            if (newWorker.state === 'activated') resolve(null);
+        if (registration.active) {
+          setTimeout(resolve, 3000); // 3 segundos extras
+        } else {
+          registration.addEventListener('updatefound', () => {
+            const newWorker = registration.installing;
+            newWorker?.addEventListener('statechange', () => {
+              if (newWorker.state === 'activated') setTimeout(resolve, 3000);
+            });
           });
-        });
-        setTimeout(resolve, 2000); // Timeout de segurança
+        }
+        setTimeout(resolve, 5000); // Timeout máximo
       });
 
       const permission = await Notification.requestPermission();
       setPermissionStatus(permission);
 
       if (permission === 'granted') {
-        // Chave Hardcoded para evitar qualquer erro de ambiente
-        const vapidPublicKey = "BEWIEd9BEo8NYSw4ULRd2CE8EqXhJ_R5yIIzXkbUKpwTCWRJkxM99sPFNETUFn6hoPCIMRRrYDtQXUAZrnQH8fA";
+        // Nova Chave Hardcoded (V3)
+        const vapidPublicKey = "BJFdUqLRJmQreMP422Ppnhzfsgh8L33wSBPqQ4aY-hDVBsQ05Ny9OkeHtP9ZYTRI7ex8RWf2Pdbh0Hgrfxrpcc0";
         
         const sub = await registration.pushManager.subscribe({
           userVisibleOnly: true,
