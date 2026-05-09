@@ -27,9 +27,13 @@ import {
 
 function urlB64ToUint8Array(base64String: string) {
   const padding = '='.repeat((4 - base64String.length % 4) % 4);
-  const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+  const base64 = (base64String + padding)
+    .replace(/\-/g, '+')
+    .replace(/_/g, '/');
+
   const rawData = window.atob(base64);
   const outputArray = new Uint8Array(rawData.length);
+
   for (let i = 0; i < rawData.length; ++i) {
     outputArray[i] = rawData.charCodeAt(i);
   }
@@ -211,7 +215,7 @@ export default function ProfessionalDashboardPage() {
       setPermissionStatus(permission);
 
       if (permission === 'granted') {
-        const vapidPublicKey = (process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || "BFVMa0nULV7_Yu2LcL0Di5eyXdtnMzCZml-QWX7kHzHa8Pw_EmtPhE0v432Enkd_KJSWnZkcl1ThKO1Js_wIxH8").trim();
+        const vapidPublicKey = (process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || "BEWIEd9BEo8NYSw4ULRd2CE8EqXhJ_R5yIIzXkbUKpwTCWRJkxM99sPFNETUFn6hoPCIMRRrYDtQXUAZrnQH8fA").trim();
         
         const sub = await registration.pushManager.subscribe({
           userVisibleOnly: true,
