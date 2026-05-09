@@ -511,6 +511,13 @@ export default function ProfessionalDashboardPage() {
             </div>
           </section>
         </main>
+        
+        {/* Debug Info (Temporário para resolver o erro) */}
+        <div className="px-6 mt-10 mb-20 opacity-20 hover:opacity-100 transition-opacity">
+           <p className="text-[8px] font-mono text-zinc-600 break-all">
+             DEBUG VAPID: {process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || "SEM CHAVE (USANDO FALLBACK)"}
+           </p>
+        </div>
       </div>
 
       {/* Bottom Nav Bar */}
